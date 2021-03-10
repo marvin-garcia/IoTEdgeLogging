@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using System.Net.Http;
 using Newtonsoft.Json;
 using System.Threading.Tasks;
+using Azure.Storage.Blobs;
 
 namespace FunctionApp
 {
@@ -18,10 +19,12 @@ namespace FunctionApp
         private static int? _logsTail = Convert.ToInt32(Environment.GetEnvironmentVariable("LogsTail"));
         private static string _logsEncoding = Environment.GetEnvironmentVariable("LogsEncoding");
         private static string _logsContentType = Environment.GetEnvironmentVariable("LogsContentType");
-        private static string _getModuleLogsUrl = "https://localhost/api/GetModuleLogs";
+        private static string _getModuleLogsUrl = Environment.GetEnvironmentVariable("GetModuleLogsUrl");
+        private static string _connectionString = Environment.GetEnvironmentVariable("StorageConnectionString");
+        private static string _containerName = Environment.GetEnvironmentVariable("ContainerName");
         
         [FunctionName("ScheduleGetModulesLogs")]
-        public static async Task Run([TimerTrigger("0 0 */1 * * *")]TimerInfo myTimer, ILogger log)
+        public static async Task Run([TimerTrigger("50 21 16 * * *")]TimerInfo myTimer, ILogger log)
         {
             try
             {
@@ -30,20 +33,33 @@ namespace FunctionApp
                 HttpResponseMessage response = new HttpResponseMessage();
                 using (var client = new HttpClient())
                 {
+                    BlobContainerClient container = new BlobContainerClient(_connectionString, _containerName);
+                    Azure.Storage.Sas.BlobContainerSasPermissions permissions = Azure.Storage.Sas.BlobContainerSasPermissions.All;
+                    DateTimeOffset expiresOn = new DateTimeOffset(DateTime.UtcNow.AddHours(12));
+                    Uri sasUri = container.GenerateSasUri(permissions, expiresOn);
+                    
                     var data = new
                     {
                         deviceId = _iotHubDeviceId,
-                        moduleId = "edgeAgent",
+                        moduleId = "$edgeAgent",
                         methodName = "UploadModuleLogs",
                         methodPayload = new
                         {
-                            id = _logsIdRegex,
-                            filter = new
+                            schemaVersion = "1.0",
+                            sasUrl = sasUri.AbsoluteUri,
+                            items = new[]
                             {
-                                since = _logsSince,
-                                loglevel = _logsLogLevel,
-                                tail = _logsTail,
-                            }
+                                new {
+                                    id = _logsIdRegex,
+                                    filter = new
+                                    {
+                                        since = _logsSince,
+                                        loglevel = _logsLogLevel,
+                                    }
+                                }
+                            },
+                            encoding = "none",
+                            contentType = "json",
                         }
                     };
 

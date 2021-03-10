@@ -33,6 +33,9 @@ namespace FunctionApp
                 IoTEdgeLog[] iotEdgeLogs = JsonConvert.DeserializeObject<IoTEdgeLog[]>(reader.ReadToEnd());
                 LogAnalyticsLog[] logAnalyticsLogs = iotEdgeLogs.Select(x => new LogAnalyticsLog(x)).ToArray();
 
+                if (logAnalyticsLogs.Length == 0)
+                    return;
+
                 // initialize log analytics class
                 AzureLogAnalytics logAnalytics = new AzureLogAnalytics(
                     workspaceId: _workspaceId,
@@ -40,7 +43,8 @@ namespace FunctionApp
                     logType: _logType,
                     apiVersion: _workspaceApiVersion);
 
-                // break logs in chunks to fit in one request
+                // because log analytics supports messages up to 30MB,
+                // we have to break logs in chunks to fit in on each request
                 byte[] logBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(logAnalyticsLogs));
                 double chunks = Math.Ceiling(logBytes.Length / (_logMaxSizeMB * 1024f * 1024f));
                 
