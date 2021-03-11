@@ -1,0 +1,23 @@
+{
+  "content": {
+    "modulesContent": {
+      "$edgeAgent": {
+        "properties.desired.modules.samplelogs": {
+          "settings": {
+            "image": "marvingarcia/samplelogs:latest",
+            "createOptions": ""
+          },
+          "env": {
+            "SLEEP_TIME": {
+              "value": "10"
+            }
+          },
+          "type": "docker",
+          "status": "running",
+          "restartPolicy": "always",
+          "version": "1.0"
+        }
+      }
+    }
+  }
+}
