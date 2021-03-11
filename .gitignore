@@ -262,5 +262,5 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
-/.vscode
+**/.vscode
 /FunctionApp/FunctionApp/Properties
