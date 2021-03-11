@@ -109,12 +109,6 @@ async def main():
                     log_level = randint(0, 7)
                     log_enum, log_str = cast_log(log_level)
 
-                    # logging.log(log_enum, "<%s> %s [%s] - %s" % (
-                    #     log_level,
-                    #     str(datetime.now()),
-                    #     log_str,
-                    #     RANDOM_PHRASES[randint(0, len(RANDOM_PHRASES))]))
-
                     utcnow = datetime.utcnow()
                     date = utcnow.strftime('%Y-%m-%d %H:%M:%S') + '.' + utcnow.strftime('%f')[:-3] + " +00:00"
 
