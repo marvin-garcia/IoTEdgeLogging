@@ -1,0 +1,22 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet",
+    "IotHubDeviceId": "",
+    "HubConnectionString": "",
+    "StorageConnectionString": "",
+    "ContainerName": "",
+    "WorkspaceId": "",
+    "WorkspaceKey": "",
+    "WorkspaceApiVersion": "2016-04-01",
+    "GetModuleLogsUrl": "http://localhost:7071/api/GetModuleLogs",
+    "LogType": "iotedgemodulelogs",
+    "LogsMaxSizeMB": "28",
+    "LogsIdRegex": ".*",
+    "LogsSince": "1h",
+    "LogsLogLevel": "5",
+    "LogsEncoding": "none",
+    "LogsContentType": "json"
+  }
+}
