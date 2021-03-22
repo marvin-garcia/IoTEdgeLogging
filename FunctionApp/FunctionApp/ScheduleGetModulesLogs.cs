@@ -24,7 +24,7 @@ namespace FunctionApp
         private static string _containerName = Environment.GetEnvironmentVariable("ContainerName");
         
         [FunctionName("ScheduleGetModulesLogs")]
-        public static async Task Run([TimerTrigger("50 21 16 * * *")]TimerInfo myTimer, ILogger log)
+        public static async Task Run([TimerTrigger("0 0 */1 * * *")]TimerInfo myTimer, ILogger log)
         {
             try
             {
@@ -54,7 +54,7 @@ namespace FunctionApp
                                     filter = new
                                     {
                                         since = _logsSince,
-                                        loglevel = _logsLogLevel,
+                                        //loglevel = _logsLogLevel,
                                     }
                                 }
                             },
