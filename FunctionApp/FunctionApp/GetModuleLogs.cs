@@ -1,15 +1,14 @@
+using System;
 using System.IO;
+using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using Microsoft.Azure.Devices;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
-using Microsoft.Azure.Devices;
-using Newtonsoft.Json.Linq;
-using System;
 
 namespace FunctionApp
 {
@@ -19,7 +18,7 @@ namespace FunctionApp
         private static string _hubConnectionString = Environment.GetEnvironmentVariable("HubConnectionString");
 
         [FunctionName("GetModuleLogs")]
-        public static async Task<IActionResult> Run(
+        public static async Task<HttpResponseMessage> Run(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
@@ -39,13 +38,19 @@ namespace FunctionApp
                 deviceMethod.SetPayloadJson(methodPayload);
 
                 var result = await _serviceClient.InvokeDeviceMethodAsync(deviceId, moduleId, deviceMethod);
-
-                return new OkObjectResult(result);
+                
+                return new HttpResponseMessage((HttpStatusCode)result.Status)
+                {
+                    Content = new StringContent(result.GetPayloadAsJson())
+                };
             }
             catch (Exception e)
             {
                 log.LogError($"GetModuleLogs failed with the following exception: {e}");
-                return new BadRequestObjectResult(e);
+                return new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                {
+                    Content = new StringContent(e.ToString()),
+                };
             }
         }
     }
