@@ -65,6 +65,7 @@ namespace FunctionApp
 
                     using (var content = new StringContent(JsonConvert.SerializeObject(data)))
                     {
+                        log.LogInformation($"Calling endpoint {_getModuleLogsUrl} to invoke module logs upload method");
                         response = await client.PostAsync(_getModuleLogsUrl, content);
                     }
                 }
