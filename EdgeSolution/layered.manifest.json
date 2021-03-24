@@ -2,20 +2,37 @@
   "content": {
     "modulesContent": {
       "$edgeAgent": {
-        "properties.desired.modules.samplelogs": {
-          "settings": {
-            "image": "marvingarcia/samplelogs:latest",
-            "createOptions": ""
+        "properties.desired.modules": {
+          "pythonsamplelogs": {
+            "settings": {
+              "image": "marvingarcia/pythonsamplelogs:latest",
+              "createOptions": ""
+            },
+            "env": {
+              "SLEEP_TIME": {
+                "value": "60"
+              }
+            },
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "version": "1.0"
           },
-          "env": {
-            "SLEEP_TIME": {
-              "value": "10"
-            }
-          },
-          "type": "docker",
-          "status": "running",
-          "restartPolicy": "always",
-          "version": "1.0"
+          "csharpsamplelogs": {
+            "settings": {
+              "image": "marvingarcia/csharpsamplelogs:latest",
+              "createOptions": ""
+            },
+            "env": {
+              "SLEEP_TIME": {
+                "value": "60"
+              }
+            },
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "version": "1.0"
+          }
         }
       }
     }
