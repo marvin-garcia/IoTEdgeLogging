@@ -3,6 +3,8 @@ on:
   push:
     branches:
     - main
+    paths:
+      - "IoTEdgeLogger/"
 env:
   AZURE_FUNCTIONAPP_NAME: IoTEdgeLoggingApp
   AZURE_FUNCTIONAPP_PACKAGE_PATH: FunctionApp\published
