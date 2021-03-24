@@ -14,7 +14,7 @@ using System.Collections.Generic;
 
 namespace FunctionApp
 {
-    public static class ScheduleGetModulesLogs
+    public static class ScheduleUploadModulesLogs
     {
         private static string _iotHubConnectionString = Environment.GetEnvironmentVariable("HubConnectionString");
         private static string _iotDeviceQuery = Environment.GetEnvironmentVariable("DeviceQuery");
@@ -30,13 +30,13 @@ namespace FunctionApp
         private static string _connectionString = Environment.GetEnvironmentVariable("StorageConnectionString");
         private static string _containerName = Environment.GetEnvironmentVariable("ContainerName");
         
-        [FunctionName("ScheduleGetModulesLogs")]
+        [FunctionName("ScheduleUploadModulesLogs")]
         public static async Task Run([TimerTrigger("0 0 */1 * * *")]TimerInfo myTimer, ILogger log)
         //public static async Task Run([TimerTrigger("0 */1 * * * *")] TimerInfo myTimer, ILogger log)
         {
             try
             {
-                log.LogInformation($"ScheduleGetModulesLogs function executed at: {DateTime.Now}");
+                log.LogInformation($"ScheduleUploadModulesLogs function executed at: {DateTime.Now}");
 
                 #region cast and fix payload property types
                 int? logLevel = null;
@@ -130,7 +130,7 @@ namespace FunctionApp
             }
             catch (Exception e)
             {
-                log.LogError($"ScheduleGetModulesLogs failed with the following exception: {e}");
+                log.LogError($"ScheduleUploadModulesLogs failed with the following exception: {e}");
             }
         }
     }
