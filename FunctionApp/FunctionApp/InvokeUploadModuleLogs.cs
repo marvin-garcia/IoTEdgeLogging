@@ -12,19 +12,19 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 
 namespace FunctionApp
 {
-    public static class GetModuleLogs
+    public static class InvokeUploadModuleLogs
     {
         private static ServiceClient _serviceClient;
         private static string _hubConnectionString = Environment.GetEnvironmentVariable("HubConnectionString");
 
-        [FunctionName("GetModuleLogs")]
+        [FunctionName("InvokeUploadModuleLogs")]
         public static async Task<HttpResponseMessage> Run(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
             try
             {
-                log.LogInformation("GetModuleLogs processed a request.");
+                log.LogInformation("InvokeUploadModuleLogs processed a request.");
 
                 string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
                 dynamic data = JsonConvert.DeserializeObject(requestBody);
@@ -46,7 +46,7 @@ namespace FunctionApp
             }
             catch (Exception e)
             {
-                log.LogError($"GetModuleLogs failed with the following exception: {e}");
+                log.LogError($"InvokeUploadModuleLogs failed with the following exception: {e}");
                 return new HttpResponseMessage(HttpStatusCode.InternalServerError)
                 {
                     Content = new StringContent(e.ToString()),

@@ -26,7 +26,7 @@ namespace FunctionApp
         private static string _logsTail = Environment.GetEnvironmentVariable("LogsTail");
         private static string _logsEncoding = Environment.GetEnvironmentVariable("LogsEncoding");
         private static string _logsContentType = Environment.GetEnvironmentVariable("LogsContentType");
-        private static string _getModuleLogsUrl = Environment.GetEnvironmentVariable("GetModuleLogsUrl");
+        private static string _uploadModuleLogsUrl = Environment.GetEnvironmentVariable("UploadModuleLogsUrl");
         private static string _connectionString = Environment.GetEnvironmentVariable("StorageConnectionString");
         private static string _containerName = Environment.GetEnvironmentVariable("ContainerName");
         
@@ -113,8 +113,8 @@ namespace FunctionApp
                             });
 
                         using var content = new StringContent(serializedData);
-                        log.LogInformation($"Calling endpoint {_getModuleLogsUrl} to invoke module logs upload method");
-                        response = await client.PostAsync(_getModuleLogsUrl, content);
+                        log.LogInformation($"Calling endpoint {_uploadModuleLogsUrl} to invoke module logs upload method");
+                        response = await client.PostAsync(_uploadModuleLogsUrl, content);
 
                         if (response.StatusCode == System.Net.HttpStatusCode.OK)
                         {
