@@ -1,16 +1,16 @@
 # Custom Logging in IoT Edge Modules
 
-This folder provides an IoT Edge solution with a .NET Core and and Python modules, both giving you an idea on how to do logging in a way that aligns with the [Syslog severity level]([Syslog - Wikipedia](https://en.wikipedia.org/wiki/Syslog#Severity_level)) standard.
+This folder provides an IoT Edge solution with a .NET Core and and Python modules, both giving you an idea on how to do logging in a way that aligns with the [Syslog severity level](https://en.wikipedia.org/wiki/Syslog#Severity_level) standard.
 
 
 
 ## Python Logging Module
 
-The [Python Sample Logs](modules/PythonSampleLogs/) module leverages the [OnlineExceptionFormatter](modules/PythonSampleLogs/CustomLogger.py) class, which is built on top of the [logging](https://docs.python.org/3/library/logging.html) Python module to make it easier to import and reference the logging object. The **OnlineExceptionFormatter** class provides a formatter that does the following:
+The [Python Sample Logs](modules/PythonSampleLogs/) module leverages the [OnlineExceptionFormatter](modules/PythonSampleLogs/CustomLogger.py#L7) class, which is built on top of the [logging](https://docs.python.org/3/library/logging.html) Python module to make it easier to import and reference the logging object. The **OnlineExceptionFormatter** class provides a formatter that does the following:
 
 - Support for custom log formats. More info [here](https://docs.python.org/3/library/logging.html#formatter-objects).
 - Change time format to match exactly what the edge agent module expects
-- Change the log level from the Python [log levels](https://docs.python.org/3/library/logging.html#logging-levels) to [syslog severity codes](https://en.wikipedia.org/wiki/Syslog#Severity_level) standard
+- Switch the log level from Python [log levels](https://docs.python.org/3/library/logging.html#logging-levels) to [syslog severity codes](https://en.wikipedia.org/wiki/Syslog#Severity_level) standard
 - Convert exceptions to single line logs
 
 
@@ -36,7 +36,7 @@ logger.log(logging.INFO, "another info message")
 
 ## .NET Core Logging Module
 
-The [C# Sample Logs](modules/CsharpSampleLogs/) module leverages the [IoTEdgeLogger](../IoTEdgeLogger/) .solution, a .NET Standard library that was inspired by the official [Logger class in IoT Edge](https://github.com/Azure/iotedge/blob/master/edge-util/src/Microsoft.Azure.Devices.Edge.Util/Logger.cs). If you want to use the library, you can install the [NuGet](https://www.nuget.org/packages/IoTEdgeLogger/) package or develop your own version by forking this repository.
+The [C# Sample Logs](modules/CsharpSampleLogs/) module leverages the [IoTEdgeLogger](../IoTEdgeLogger/) .solution, a .NET Standard library that is based and inspired by the official [Logger class in IoT Edge](https://github.com/Azure/iotedge/blob/master/edge-util/src/Microsoft.Azure.Devices.Edge.Util/Logger.cs). If you want to use the library, you can install the [NuGet](https://www.nuget.org/packages/IoTEdgeLogger/) package or develop your own version by forking this repository.
 
 The sample code below demonstrates how to use the **IoTEdgeLogger** library:
 
@@ -77,3 +77,7 @@ az iot edge deployment create `
 
 
 > Note: You need the [Azure IoT CLI Extension](https://github.com/Azure/azure-iot-cli-extension) to run the command above.
+
+
+
+After the deployment is successful, you will see two new modules called **csharpsamplelogs** and **pythonsamplelogs** running on your edge device, both logging random messages every 60 seconds.

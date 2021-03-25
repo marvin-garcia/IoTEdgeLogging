@@ -33,14 +33,14 @@ In order to successfully deploy this solution, you will need the following:
 - The [Azure Functions Core Tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local#v2) version 3.x.
 - [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) version 2.4 or later.
 - An Azure account with an active subscription. [Create one for free](https://azure.microsoft.com/free/?ref=microsoft.com&utm_source=microsoft.com&utm_medium=docs&utm_campaign=visualstudio).
-- A [Function app]([Create your first function in the Azure portal | Microsoft Docs](https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-function-app-portal#create-a-function-app)) in your Azure subscription running **version 3.1 of the .NET runtime stack.** You can host it on a [**Consumption**]([Azure Functions Consumption plan hosting | Microsoft Docs](https://docs.microsoft.com/en-us/azure/azure-functions/consumption-plan)) plan to avoid incurring in unnecessary charges.
-- A [Log analytics workspace]([Create a Log Analytics workspace in the Azure portal - Azure Monitor | Microsoft Docs](https://docs.microsoft.com/en-us/azure/azure-monitor/logs/quick-create-workspace)) in your Azure subscription.
-- A [storage account]([Create a storage account - Azure Storage | Microsoft Docs](https://docs.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal)) in your Azure subscription. It must also have a [container]([Quickstart - Create a blob with the Azure portal - Azure Storage | Microsoft Docs](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-portal#create-a-container)) and a [queue]([Quickstart: Create Azure Storage queues in the portal | Microsoft Docs](https://docs.microsoft.com/en-us/azure/storage/queues/storage-quickstart-queues-portal)).
+- A [Function app](https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-function-app-portal#create-a-function-app) in your Azure subscription running **version 3.1 of the .NET runtime stack.** You can host it on a [**Consumption**]([Azure Functions Consumption plan hosting | Microsoft Docs](https://docs.microsoft.com/en-us/azure/azure-functions/consumption-plan)) plan to avoid incurring in unnecessary charges.
+- A [Log analytics workspace](https://docs.microsoft.com/en-us/azure/azure-monitor/logs/quick-create-workspace) in your Azure subscription.
+- A [storage account](https://docs.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal) in your Azure subscription. It must also have a [container](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-portal#create-a-container) and a [queue](https://docs.microsoft.com/en-us/azure/storage/queues/storage-quickstart-queues-portal).
 - A standard [IoT hub](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-create-through-portal?view=iotedge-2018-06) in your Azure subscription.
 - A [registered IoT Edge device](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-register-device?view=iotedge-2018-06&tabs=azure-portal) in your IoT Hub.
 - If you don't have an IoT Edge device running:
-  - [Deploy Azure IoT Edge on an Ubuntu virtual machine]([Run Azure IoT Edge on Ubuntu Virtual Machines | Microsoft Docs](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge-ubuntuvm?view=iotedge-2018-06)).
-  - [Provision your edge device]([Install Azure IoT Edge | Microsoft Docs](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge?view=iotedge-2018-06#provision-the-device-with-its-cloud-identity)) with IoT hub.
+  - [Deploy Azure IoT Edge on an Ubuntu virtual machine](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge-ubuntuvm?view=iotedge-2018-06).
+  - [Provision your edge device](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge?view=iotedge-2018-06#provision-the-device-with-its-cloud-identity) with IoT hub.
   - A [sample IoT edge deployment](EdgeSolution/README.md) to generate logs.
 
 
@@ -61,11 +61,11 @@ Verify your prerequisites to ensure you have the right versions for Azure CLI an
 
 Like it was mentioned before, you will process log files as soon as they are uploaded to your storage account. To react to every uploaded file, you have to link your storage account to  an event grid subscription.
 
-> NOTE: Alternatively, you could change the [ProcessModuleLogs](FunctionApp/FunctionApp/ProcessModuleLogs.cs)  function to use blob triggers instead of leveraging event grid. However, blob trigger relies on polling that works as a hybrid between inspecting logs and running periodic container scans, storage logs are created on a "best effort" basis and therefore there is no guarantee that all events will be captured, missing storage logs as a consequence. Find more information about blob trigger limitations and alternatives [here]([Azure Blob storage trigger for Azure Functions | Microsoft Docs](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-storage-blob-trigger?tabs=csharp#polling)).
+> NOTE: Alternatively, you could change the [ProcessModuleLogs](FunctionApp/FunctionApp/ProcessModuleLogs.cs)  function to use blob triggers instead of leveraging event grid. However, blob trigger relies on polling that works as a hybrid between inspecting logs and running periodic container scans, storage logs are created on a "best effort" basis and therefore there is no guarantee that all events will be captured, missing storage logs as a consequence. Find more information about blob trigger limitations and alternatives [here](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-storage-blob-trigger?tabs=csharp#polling).
 
 
 
-You will create the event grid subscription using the [az eventgrid event-subscription](https://docs.microsoft.com/en-us/cli/azure/eventgrid/event-subscription?view=azure-cli-latest#az_eventgrid_event_subscription_create) command. Open a PowerShell console and run the code below.
+Create the event grid subscription using the [az eventgrid event-subscription](https://docs.microsoft.com/en-us/cli/azure/eventgrid/event-subscription?view=azure-cli-latest#az_eventgrid_event_subscription_create) command. Open a PowerShell console and run the code below.
 
 In the following code, replace the storage account, container and queue names with your values:
 
@@ -218,7 +218,7 @@ Now that you have seen the available configuration options for the solution, let
 
 ## Configure application settings
 
-Now that you have seen the settings and know how you want to configure them for your solution, you can follow this [article]([Configure function app settings in Azure Functions | Microsoft Docs](https://docs.microsoft.com/en-us/azure/azure-functions/functions-how-to-use-azure-function-app-settings?tabs=portal)) to work with application settings on your Function app to add all the settings above.
+Now that you have seen the settings and know how you want to configure them for your solution, you can follow this [article](https://docs.microsoft.com/en-us/azure/azure-functions/functions-how-to-use-azure-function-app-settings?tabs=portal) to work with application settings on your Function app to add all the settings above.
 
 
 
