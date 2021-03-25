@@ -3,6 +3,10 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Marvin Garcia</Authors>
+    <Product />
+    <Company />
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
