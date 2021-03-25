@@ -11,14 +11,10 @@
     "WorkspaceId": "",
     "WorkspaceKey": "",
     "WorkspaceApiVersion": "2016-04-01",
-    "UploadModuleLogsUrl": "http://localhost:7071/api/InvokeUploadModuleLogs",
     "LogType": "iotedgemodulelogs",
-    "LogsMaxSizeMB": "28",
     "LogsIdRegex": ".*",
     "LogsSince": "1h",
     "LogsLogLevel": "5",
-    "LogsRegex": "\\b(ERR?|CRIT?)\\b",
-    "LogsEncoding": "none",
-    "LogsContentType": "json"
+    "LogsRegex": "\\b(ERR?|CRIT?)\\b"
   }
 }

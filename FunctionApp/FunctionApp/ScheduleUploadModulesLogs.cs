@@ -23,9 +23,8 @@
 //        private static string _logsRegex = Environment.GetEnvironmentVariable("LogsRegex");
 //        private static string _logsLogLevel = Environment.GetEnvironmentVariable("LogsLogLevel");
 //        private static string _logsUntil = Environment.GetEnvironmentVariable("LogsUntil");
-//        private static string _logsTail = Environment.GetEnvironmentVariable("LogsTail");
-//        private static string _logsEncoding = Environment.GetEnvironmentVariable("LogsEncoding");
-//        private static string _logsContentType = Environment.GetEnvironmentVariable("LogsContentType");
+//        private static string _logsEncoding = "none";
+//        private static string _logsContentType = "json";
 //        private static string _uploadModuleLogsUrl = Environment.GetEnvironmentVariable("UploadModuleLogsUrl");
 //        private static string _connectionString = Environment.GetEnvironmentVariable("StorageConnectionString");
 //        private static string _containerName = Environment.GetEnvironmentVariable("ContainerName");

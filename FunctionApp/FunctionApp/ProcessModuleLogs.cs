@@ -19,9 +19,9 @@ namespace FunctionApp
         private static string _containerName = Environment.GetEnvironmentVariable("ContainerName");
         private static string _workspaceId = Environment.GetEnvironmentVariable("WorkspaceId");
         private static string _workspaceKey = Environment.GetEnvironmentVariable("WorkspaceKey");
-        private static string _workspaceApiVersion = Environment.GetEnvironmentVariable("WorkspaceApiVersion");
+        private static string _workspaceApiVersion = "2016-04-01";
         private static string _logType = Environment.GetEnvironmentVariable("LogType");
-        private static int _logMaxSizeMB = Convert.ToInt32(Environment.GetEnvironmentVariable("LogsMaxSizeMB"));
+        private static int _logMaxSizeMB = 28;
 
         [FunctionName("ProcessModuleLogs")]
         public static async Task Run(

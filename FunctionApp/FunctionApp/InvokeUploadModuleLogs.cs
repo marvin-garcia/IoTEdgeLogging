@@ -20,11 +20,9 @@ namespace FunctionApp
         private static string _logsSince = Environment.GetEnvironmentVariable("LogsSince");
         private static string _logsRegex = Environment.GetEnvironmentVariable("LogsRegex");
         private static string _logsLogLevel = Environment.GetEnvironmentVariable("LogsLogLevel");
-        private static string _logsUntil = Environment.GetEnvironmentVariable("LogsUntil");
         private static string _logsTail = Environment.GetEnvironmentVariable("LogsTail");
-        private static string _logsEncoding = Environment.GetEnvironmentVariable("LogsEncoding");
-        private static string _logsContentType = Environment.GetEnvironmentVariable("LogsContentType");
-        private static string _uploadModuleLogsUrl = Environment.GetEnvironmentVariable("UploadModuleLogsUrl");
+        private static string _logsEncoding = "none";
+        private static string _logsContentType = "json";
         private static string _connectionString = Environment.GetEnvironmentVariable("StorageConnectionString");
         private static string _containerName = Environment.GetEnvironmentVariable("ContainerName");
 
@@ -48,9 +46,6 @@ namespace FunctionApp
                 int? logsTail = null;
                 if (!string.IsNullOrEmpty(_logsTail))
                     logsTail = Convert.ToInt32(_logsTail);
-
-                if (string.IsNullOrEmpty(_logsUntil))
-                    _logsUntil = null;
 
                 if (string.IsNullOrEmpty(_logsRegex))
                     _logsRegex = null;
