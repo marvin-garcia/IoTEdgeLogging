@@ -101,8 +101,12 @@ function New-IoTEnvironment()
     #endregion
 
     $env_hash = Get-EnvironmentHash
-    $iot_hub_name = "iothub-$($env_hash)"
+    $iot_hub_name_prefix = "iothub"
+    $iot_hub_name = "$($iot_hub_name_prefix)-$($env_hash)"
     $deployment_condition = "tags.__type__='iotedge'"
+    $device_query = "SELECT * FROM devices WHERE $($deployment_condition)"
+
+    $function_app_name = "iotedgelogsapp-$($env_hash)"
 
     #region virtual machine details
     $skus = az vm list-skus | ConvertFrom-Json -AsHashtable
@@ -148,6 +152,7 @@ function New-IoTEnvironment()
     $platform_parameters = @{
         "location" = @{ "value" = $location }
         "environmentHashId" = @{ "value" = $env_hash }
+        "iotHubName" = @{ "value" = $iot_hub_name }
         "edgeVmName" = @{ "value" = $edge_vm_name }
         "edgeVmSize" = @{ "value" = $edge_vm_size }
         "adminUsername" = @{ "value" = $vm_username }
@@ -156,9 +161,10 @@ function New-IoTEnvironment()
         "vnetAddressPrefix" = @{ "value" = $vnet_prefix }
         "edgeSubnetName" = @{ "value" = $edge_subnet_name }
         "edgeSubnetAddressRange" = @{ "value" = $edge_subnet_prefix }
-        "deviceQuery" = @{ "value" = $deployment_condition }
+        "deviceQuery" = @{ "value" = $device_query }
         "workspaceId" = @{ "value" = $workspaceId }
         "workspaceKey" = @{ "value" = $workspaceKey }
+        "functionAppName" = @{ "value" = $function_app_name }
         "logsRegex" = @{ "value" = "\b(WRN?|ERR?|CRIT?)\b" }
     }
     Set-Content -Path ./Templates/azuredeploy.parameters.json -Value (ConvertTo-Json $platform_parameters -Depth 5)
@@ -191,18 +197,24 @@ function New-IoTEnvironment()
         --target-condition=$deployment_condition
 
     # Create layered deployment
-    $opc_deployment_name = "sample-logging"
+    $deployment_name = "sample-logging"
     $priority = 1
 
-    Write-Host "`r`nCreating IoT edge layered deployment $opc_deployment_name-$priority"
+    Write-Host "`r`nCreating IoT edge layered deployment $deployment_name-$priority"
 
     az iot edge deployment create `
         --layered `
-        -d "$opc_deployment_name-$priority" `
+        -d "$deployment_name-$priority" `
         --hub-name $iot_hub_name `
         --content EdgeSolution/layered.deployment.json `
         --target-condition=$deployment_condition `
         --priority $priority
+    #endregion
+
+    #region function app
+    Write-Host "\r\nDeploying code to Function App $function_app_name"
+    Set-Location .\FunctionApp\FunctionApp\
+    func azure functionapp publish $function_app_name
     #endregion
 
     Write-Host ""

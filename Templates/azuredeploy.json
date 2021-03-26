@@ -15,6 +15,12 @@
         "description": "Unique alphanumeric id to assign to multiple resource names."
       }
     },
+    "iotHubName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name for IoT Hub resource."
+      }
+    },
     "vnetName": {
       "type": "string",
       "defaultValue": "iiot-vnet",
@@ -174,6 +180,12 @@
         "description": "Log analytics workspace shared key"
       }
     },
+    "functionAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name for the Function App resource."
+      }
+    },
     "moduleIdRegex": {
       "type": "string",
       "defaultValue": ".*",
@@ -205,7 +217,6 @@
   },
   "variables": {
     "edgeVmDnsName": "[concat(parameters('edgeVmName'), '-', parameters('environmentHashId'))]",
-    "iotHubName": "[concat('iothub-', parameters('environmentHashId'))]",
     "dpsResourceId": "[resourceId('Microsoft.Devices/provisioningServices', variables('dpsName'))]",
     "dpsName": "[concat('dps-', parameters('environmentHashId'))]",
     "dpsGlobalEndpoint": "[if(startsWith(parameters('location'), 'usgov'), 'global.azure-devices-provisioning.us', if(startsWith(parameters('location'), 'usdod'), 'global.azure-devices-provisioning.us', 'global.azure-devices-provisioning.net'))]",
@@ -222,12 +233,10 @@
     "eventGridTopicName": "[concat('eventgrid-', parameters('environmentHashId'))]",
     "eventGridSubscriptionName": "IoTEdgeLogs",
     "eventGridSubscriptionFilter": "[concat('/blobServices/default/containers/', variables('storageAccountContainerName'), '/')]",
-    "appName": "iotedgelogsapp",
-    "functionAppName": "[concat(variables('appName'), '-', parameters('environmentHashId'))]",
-    "functionAppHostingPlanName": "[concat(variables('appName'), '-plan')]",
+    "functionAppHostingPlanName": "[concat(parameters('functionAppName'), '-plan')]",
     "functionStorageAccountName": "[concat(uniquestring(resourceGroup().id), 'function')]",
     "functionStorageAccountSku": "Standard_LRS",
-    "appInsightsName": "[variables('appName')]",
+    "appInsightsName": "[parameters('functionAppName')]",
     "templateUrl": "https://raw.githubusercontent.com/marvin-garcia/IoTEdgeLogging",
     "branchName": "master"
   },
@@ -394,7 +403,7 @@
           ]
         },
         "protectedSettings": {
-          "commandToExecute": "[concat('sudo bash edge-setup.sh --idScope \"', reference(variables('dpsResourceId'), providers('Microsoft.Devices', 'ProvisioningServices').apiVersions[0]).idScope, '\" --dpsConnString \"', 'HostName=', variables('dpsName'), '.azure-devices-provisioning.net;SharedAccessKeyName=provisioningserviceowner;SharedAccessKey=', listKeys(variables('dpsResourceId'), providers('Microsoft.Devices', 'ProvisioningServices').apiVersions[0]).value[0].primaryKey, '\"', '--dpsGlobalEndpoint ', '\"', 'https://', variables('dpsGlobalEndpoint'), '\"')]"
+          "commandToExecute": "[concat('sudo bash edge-setup.sh --idScope \"', reference(variables('dpsResourceId'), providers('Microsoft.Devices', 'ProvisioningServices').apiVersions[0]).idScope, '\" --dpsConnString \"', 'HostName=', variables('dpsName'), '.azure-devices-provisioning.net;SharedAccessKeyName=provisioningserviceowner;SharedAccessKey=', listKeys(variables('dpsResourceId'), providers('Microsoft.Devices', 'ProvisioningServices').apiVersions[0]).value[0].primaryKey, '\"', ' --dpsGlobalEndpoint ', '\"', 'https://', variables('dpsGlobalEndpoint'), '\"')]"
         }
       },
       "dependsOn": [
@@ -459,7 +468,7 @@
       "comments": "Azure IoT Hub",
       "apiVersion": "2020-07-10-preview",
       "type": "Microsoft.Devices/Iothubs",
-      "name": "[variables('iotHubName')]",
+      "name": "[parameters('iotHubName')]",
       "location": "[resourceGroup().location]",
       "sku": {
         "name": "[parameters('iotHubSku')]",
@@ -545,14 +554,14 @@
         "capacity": "[parameters('dpsCapacity')]"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Devices/Iothubs', variables('iotHubName'))]"
+        "[resourceId('Microsoft.Devices/Iothubs', parameters('iotHubName'))]"
       ],
       "properties": {
         "iotHubs": [
           {
-            "connectionString": "[concat('HostName=', reference(resourceId('Microsoft.Devices/Iothubs', variables('iotHubName'))).hostName, ';SharedAccessKeyName=iothubowner', ';SharedAccessKey=', listKeys(resourceId('Microsoft.Devices/IotHubs', variables('iotHubName')), providers('Microsoft.Devices', 'IoTHubs').apiVersions[0]).value[0].primaryKey)]",
+            "connectionString": "[concat('HostName=', reference(resourceId('Microsoft.Devices/Iothubs', parameters('iotHubName'))).hostName, ';SharedAccessKeyName=iothubowner', ';SharedAccessKey=', listKeys(resourceId('Microsoft.Devices/IotHubs', parameters('iotHubName')), providers('Microsoft.Devices', 'IoTHubs').apiVersions[0]).value[0].primaryKey)]",
             "location": "[parameters('dpsLocation')]",
-            "name": "[concat(variables('iotHubName'), variables('iotHubDomain'))]"
+            "name": "[concat(parameters('iotHubName'), variables('iotHubDomain'))]"
           }
         ]
       }
@@ -639,7 +648,7 @@
     {
       "apiVersion": "2018-11-01",
       "type": "Microsoft.Web/sites",
-      "name": "[variables('functionAppName')]",
+      "name": "[parameters('functionAppName')]",
       "location": "[parameters('location')]",
       "kind": "functionapp",
       "dependsOn": [
@@ -647,11 +656,10 @@
         "[resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageAccountName'))]"
       ],
       "properties": {
-        "name": "[variables('functionAppName')]",
+        "name": "[parameters('functionAppName')]",
         "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('functionAppHostingPlanName'))]",
         "clientAffinityEnabled": false,
         "siteConfig": {
-          "alwaysOn": true,
           "cors": {
             "allowedOrigins": [
               "*"
@@ -700,7 +708,7 @@
             },
             {
               "name": "HubConnectionString",
-              "value": "TBD"
+              "value": "[concat('HostName=', reference(resourceId('Microsoft.Devices/Iothubs', parameters('iotHubName'))).hostName, ';SharedAccessKeyName=iothubowner', ';SharedAccessKey=', listKeys(resourceId('Microsoft.Devices/IotHubs', parameters('iotHubName')), providers('Microsoft.Devices', 'IoTHubs').apiVersions[0]).value[1].primaryKey)]"
             },
             {
               "name": "LogsContentType",
@@ -745,21 +753,7 @@
           ]
         }
       },
-      "resources": [
-        // {
-        //   "apiVersion": "2018-11-01",
-        //   "name": "web",
-        //   "type": "sourcecontrols",
-        //   "dependsOn": [
-        //     "[resourceId('Microsoft.Web/Sites', variables('functionAppName'))]"
-        //   ],
-        //   "properties": {
-        //     "RepoUrl": "[variables('gitHubRepoUrl')]",
-        //     "branch": "[variables('gitHubRepoBranch')]",
-        //     "IsManualIntegration": true
-        //   }
-        // }
-      ]
+      "resources": []
     }
   ],
   "outputs": {
@@ -770,6 +764,10 @@
     "dpsConnString": {
       "type": "string",
       "value": "[concat('HostName=', variables('dpsName'), '.azure-devices-provisioning.net;SharedAccessKeyName=provisioningserviceowner;SharedAccessKey=', listKeys(variables('dpsResourceId'), providers('Microsoft.Devices', 'ProvisioningServices').apiVersions[0]).value[0].primaryKey)]"
+    },
+    "customScriptCommand": {
+      "type": "string",
+      "value": "[concat('sudo bash edge-setup.sh --idScope \"', reference(variables('dpsResourceId'), providers('Microsoft.Devices', 'ProvisioningServices').apiVersions[0]).idScope, '\" --dpsConnString \"', 'HostName=', variables('dpsName'), '.azure-devices-provisioning.net;SharedAccessKeyName=provisioningserviceowner;SharedAccessKey=', listKeys(variables('dpsResourceId'), providers('Microsoft.Devices', 'ProvisioningServices').apiVersions[0]).value[0].primaryKey, '\"', ' --dpsGlobalEndpoint ', '\"', 'https://', variables('dpsGlobalEndpoint'), '\"')]"
     }
   }
 }
