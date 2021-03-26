@@ -208,8 +208,8 @@
     "iotHubName": "[concat('iothub-', parameters('environmentHashId'))]",
     "dpsResourceId": "[resourceId('Microsoft.Devices/provisioningServices', variables('dpsName'))]",
     "dpsName": "[concat('dps-', parameters('environmentHashId'))]",
-    "dpsGlobalEndpoint": "[if(startsWith(parameters('location'), 'usgov'), 'global.azure-devices-provisioning.us', if(startsWith(parameters('location'), 'usdod'), 'global.azure-devices-provisioning.us', 'dps-57ea53da.azure-devices-provisioning.net'))]",
-    "storageAccountName": "[concat('telemetrystorage', parameters('environmentHashId'))]",
+    "dpsGlobalEndpoint": "[if(startsWith(parameters('location'), 'usgov'), 'global.azure-devices-provisioning.us', if(startsWith(parameters('location'), 'usdod'), 'global.azure-devices-provisioning.us', 'global.azure-devices-provisioning.net'))]",
+    "storageAccountName": "[concat('iotlogging', parameters('environmentHashId'))]",
     "storageAccountContainerName": "iotedgemodulelogs",
     "storageAccountQueueName": "iotedgemodulelogs",
     "edgePublicIPAddressName": "[concat(parameters('edgeVmName'), '-ip')]",
@@ -394,7 +394,7 @@
           ]
         },
         "protectedSettings": {
-          "commandToExecute": "[concat('sudo bash edge-setup.sh --idScope \"', reference(variables('dpsResourceId'), providers('Microsoft.Devices', 'ProvisioningServices').apiVersions[0]).idScope, '\" --dpsConnString \"', 'HostName=', variables('dpsName'), '.azure-devices-provisioning.net;SharedAccessKeyName=provisioningserviceowner;SharedAccessKey=', listKeys(variables('dpsResourceId'), providers('Microsoft.Devices', 'ProvisioningServices').apiVersions[0]).value[0].primaryKey, '\"', '--dpsGlobalEndpoint ', '\"', variables('dpsGlobalEndpoint'), '\"')]"
+          "commandToExecute": "[concat('sudo bash edge-setup.sh --idScope \"', reference(variables('dpsResourceId'), providers('Microsoft.Devices', 'ProvisioningServices').apiVersions[0]).idScope, '\" --dpsConnString \"', 'HostName=', variables('dpsName'), '.azure-devices-provisioning.net;SharedAccessKeyName=provisioningserviceowner;SharedAccessKey=', listKeys(variables('dpsResourceId'), providers('Microsoft.Devices', 'ProvisioningServices').apiVersions[0]).value[0].primaryKey, '\"', '--dpsGlobalEndpoint ', '\"', 'https://', variables('dpsGlobalEndpoint'), '\"')]"
         }
       },
       "dependsOn": [
@@ -466,9 +466,7 @@
         "tier": "[parameters('iotHubTier')]",
         "capacity": "[parameters('iotHubCapacity')]"
       },
-      "dependsOn": [
-        "[variables('storageAccountName')]"
-      ],
+      "dependsOn": [],
       "properties": {
         "location": "[resourceGroup().location]",
         "authorizationPolicies": [
@@ -523,7 +521,6 @@
             "maxDeliveryCount": 10
           }
         },
-        "enableFileUploadNotifications": true,
         "cloudToDevice": {
           "maxDeliveryCount": 10,
           "defaultTtlAsIso8601": "PT1H",
@@ -679,12 +676,11 @@
             },
             {
               "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
-              "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2014-04-01').InstrumentationKey]"
+              "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2020-02-02-preview').InstrumentationKey]"
             },
             {
               "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
-              "value": "[concat('InstrumentationKey=', reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2014-04-01').InstrumentationKey, ';IngestionEndpoint=', reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2014-04-01').endpoint)]"
-              //"value": "InstrumentationKey=a89f9f9d-4614-4065-88e1-0ac738faf96e;IngestionEndpoint=https://eastus-8.in.applicationinsights.azure.com/"
+              "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2020-02-02-preview').connectionString]"
             },
             {
               "name": "StorageConnectionString",

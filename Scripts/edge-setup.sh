@@ -4,6 +4,7 @@ while [ "$#" -gt 0 ]; do
     case "$1" in
         --dpsConnString)                  dpsConnString="$2" ;;
         --idScope)                        idScope="$2" ;;
+        --dpsGlobalEndpoint)              dpsGlobalEndpoint="$2" ;;
     esac
     shift
 done
@@ -32,7 +33,7 @@ echo "Iotedge installed."
 
 echo "Provisioning iotedge..."
 sleep 3
-pwsh -File $curdir/edge-setup.ps1 -dpsConnString $dpsConnString -idScope $idScope
+pwsh -File $curdir/edge-setup.ps1 -dpsConnString $dpsConnString -idScope $idScope -dpsGlobalEndpoint $dpsGlobalEndpoint
 echo "Iotedge provisioned."
 
 echo "Restarting iotedge runtime..."

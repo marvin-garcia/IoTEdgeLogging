@@ -266,3 +266,4 @@ __pycache__/
 /FunctionApp/FunctionApp/Properties
 **/local.settings.json
 docs/Presentation.pptx
+Templates/azuredeploy.parameters.json
