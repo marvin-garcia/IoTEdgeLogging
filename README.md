@@ -31,7 +31,7 @@ In order to successfully deploy this solution, you will need the following:
 
 - The [.NET Core SDK 3.1](https://www.microsoft.com/net/download)
 - The [Azure Functions Core Tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local#v2) version 3.x.
-- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) version 2.4 or later.
+- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) version 2.21 or later.
 - An Azure account with an active subscription. [Create one for free](https://azure.microsoft.com/free/?ref=microsoft.com&utm_source=microsoft.com&utm_medium=docs&utm_campaign=visualstudio).
 - A [Function app](https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-function-app-portal#create-a-function-app) in your Azure subscription running **version 3.1 of the .NET runtime stack.** You can host it on a [**Consumption**](https://docs.microsoft.com/en-us/azure/azure-functions/consumption-plan) plan to avoid incurring in unnecessary charges.
 - A [Log analytics workspace](https://docs.microsoft.com/en-us/azure/azure-monitor/logs/quick-create-workspace) in your Azure subscription.
