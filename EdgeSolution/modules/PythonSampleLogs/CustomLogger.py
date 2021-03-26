@@ -4,7 +4,7 @@ import logging
 import datetime
 from enum import Enum
 
-class OneLineExceptionFormatter(logging.Formatter):
+class CustomLogFormatter(logging.Formatter):
     def formatException(self, exc_info):
         result = super().formatException(exc_info)
         return repr(result)
@@ -73,7 +73,7 @@ def CustomLogger(
     console.setLevel(level)
 
     # configure formatter
-    formatter = OneLineExceptionFormatter(format)
+    formatter = CustomLogFormatter(format)
     console.setFormatter(formatter)
     logger.addHandler(console)
 

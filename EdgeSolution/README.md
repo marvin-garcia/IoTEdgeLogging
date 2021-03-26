@@ -6,7 +6,7 @@ This folder provides an IoT Edge solution with a .NET Core and and Python module
 
 ## Python Logging Module
 
-The [Python Sample Logs](modules/PythonSampleLogs/) module leverages the [OnlineExceptionFormatter](modules/PythonSampleLogs/CustomLogger.py#L7) class, which is built on top of the [logging](https://docs.python.org/3/library/logging.html) Python module to make it easier to import and reference the logging object. The **OnlineExceptionFormatter** class provides a formatter that does the following:
+The [Python Sample Logs](modules/PythonSampleLogs/) module leverages the [CustomLogFormatter](modules/PythonSampleLogs/CustomLogger.py#L7) class, which is built on top of the [logging](https://docs.python.org/3/library/logging.html) Python module to make it easier to import and reference the logging object. The **CustomLogFormatter** class provides a formatter that does the following:
 
 - Support for custom log formats. More info [here](https://docs.python.org/3/library/logging.html#formatter-objects).
 - Change time format to match exactly what the edge agent module expects
