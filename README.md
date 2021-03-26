@@ -32,16 +32,9 @@ In order to successfully deploy this solution, you will need the following:
 - The [.NET Core SDK 3.1](https://www.microsoft.com/net/download)
 - The [Azure Functions Core Tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local#v2) version 3.x.
 - [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) version 2.21 or later.
+- [PowerShell](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.1).
 - An Azure account with an active subscription. [Create one for free](https://azure.microsoft.com/free/?ref=microsoft.com&utm_source=microsoft.com&utm_medium=docs&utm_campaign=visualstudio).
-- A [Function app](https://docs.microsoft.com/en-us/azure/azure-functions/functions-create-function-app-portal#create-a-function-app) in your Azure subscription running **version 3.1 of the .NET runtime stack.** You can host it on a [**Consumption**](https://docs.microsoft.com/en-us/azure/azure-functions/consumption-plan) plan to avoid incurring in unnecessary charges.
 - A [Log analytics workspace](https://docs.microsoft.com/en-us/azure/azure-monitor/logs/quick-create-workspace) in your Azure subscription.
-- A [storage account](https://docs.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal) in your Azure subscription. It must also have a [container](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-portal#create-a-container) and a [queue](https://docs.microsoft.com/en-us/azure/storage/queues/storage-quickstart-queues-portal).
-- A standard [IoT hub](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-create-through-portal?view=iotedge-2018-06) in your Azure subscription.
-- A [registered IoT Edge device](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-register-device?view=iotedge-2018-06&tabs=azure-portal) in your IoT Hub.
-- If you don't have an IoT Edge device running:
-  - [Deploy Azure IoT Edge on an Ubuntu virtual machine](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge-ubuntuvm?view=iotedge-2018-06).
-  - [Provision your edge device](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge?view=iotedge-2018-06#provision-the-device-with-its-cloud-identity) with IoT hub.
-  - A [sample IoT edge deployment](EdgeSolution/README.md) to generate logs.
 
 
 
@@ -100,35 +93,26 @@ git clone https://github.com/marvin-garcia/IoTEdgeLogging.git
 
 
 
-## Deploy Function App
+## Deploy the solution
 
-Now you will deploy the Function app project using the [func azure functionapp publish](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local#project-file-deployment) command.
+Now you will deploy the entire solution, open a PowerShell console and run the code below:
 
-In the following code, replace <APP_NAME> with the name of your app.
-
-```bash
-cd IoTEdgeLogging/FunctionApp/
-func azure functionapp publish <APP_NAME>
+```powershell
+cd IoTEdgeLogging\
+.\Scripts\deploy.ps1
 ```
 
 
 
-The publish command shows results similar to the following output (truncated for simplicity):
+The script will ask some questions regarding deployment region, resource group name and Log Analytics workspace. Once you have provided the information it will deploy the following main resources:
 
-```
-...
-
-Getting site publishing info...
-Creating archive for current directory...
-Deployment completed successfully.
-
-...
-
-Functions in <APP_NAME>:
-    InvokeUploadModuleLogs - [timerTrigger]
-
-    ProcessModuleLogs - [queueTrigger]
-```
+- IoT Hub
+- Device Provisioning Service
+- IoT Edge virtual machine
+- Storage accounts
+- App service plan and Function app
+- Application Insights
+- Event grid topic
 
 
 
@@ -216,19 +200,13 @@ Now that you have seen the available configuration options for the solution, let
 
 
 
-## Configure application settings
-
-Now that you have seen the settings and know how you want to configure them for your solution, you can follow this [article](https://docs.microsoft.com/en-us/azure/azure-functions/functions-how-to-use-azure-function-app-settings?tabs=portal) to work with application settings on your Function app to add all the settings above.
-
-
-
 ## Query data from Log analytics
 
-Once you have deployed and configured your function and it has been running enough time to let the modules to generate logs that match the criteria specified in the configuration settings; you will be able to see logs in Log analytics. Go to your Log analytics resource in the Azure portal, choose Logs from the left menu and run the following sample query:
+One the solution has been deployed and it has been running enough time to let the modules generate logs; you will be able to query them in Log analytics. Go to your Log analytics resource in the Azure portal, choose Logs from the left menu and run the following sample query:
 
 ```sql
 iotedgemodulelogs_CL
-| where timestamp_t <= ago(2h)
+| where timestamp_t <= ago(24h)
 | project timestamp_t, iotHub_s, deviceId_s, moduleId_s, logLevel_d, Message
 ```
 
