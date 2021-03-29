@@ -559,7 +559,7 @@
       "properties": {
         "iotHubs": [
           {
-            "connectionString": "[concat('HostName=', reference(resourceId('Microsoft.Devices/Iothubs', parameters('iotHubName'))).hostName, ';SharedAccessKeyName=iothubowner', ';SharedAccessKey=', listKeys(resourceId('Microsoft.Devices/IotHubs', parameters('iotHubName')), providers('Microsoft.Devices', 'IoTHubs').apiVersions[0]).value[0].primaryKey)]",
+            "connectionString": "[concat('HostName=', reference(resourceId('Microsoft.Devices/Iothubs', parameters('iotHubName'))).hostName, ';SharedAccessKeyName=', variables('iotHubOwnerPolicyName'), ';SharedAccessKey=', listKeys(resourceId('Microsoft.Devices/IotHubs', parameters('iotHubName')), providers('Microsoft.Devices', 'IoTHubs').apiVersions[0]).value[0].primaryKey)]",
             "location": "[parameters('dpsLocation')]",
             "name": "[concat(parameters('iotHubName'), variables('iotHubDomain'))]"
           }
@@ -708,7 +708,7 @@
             },
             {
               "name": "HubConnectionString",
-              "value": "[concat('HostName=', reference(resourceId('Microsoft.Devices/Iothubs', parameters('iotHubName'))).hostName, ';SharedAccessKeyName=iothubowner', ';SharedAccessKey=', listKeys(resourceId('Microsoft.Devices/IotHubs', parameters('iotHubName')), providers('Microsoft.Devices', 'IoTHubs').apiVersions[0]).value[1].primaryKey)]"
+              "value": "[concat('HostName=', reference(resourceId('Microsoft.Devices/Iothubs', parameters('iotHubName'))).hostName, ';SharedAccessKeyName=', variables('iotHubServicePolicyName'), ';SharedAccessKey=', listKeys(resourceId('Microsoft.Devices/IotHubs', parameters('iotHubName')), providers('Microsoft.Devices', 'IoTHubs').apiVersions[0]).value[1].primaryKey)]"
             },
             {
               "name": "LogsContentType",
