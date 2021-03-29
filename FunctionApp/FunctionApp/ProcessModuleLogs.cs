@@ -92,7 +92,7 @@ namespace FunctionApp
                 {
                     int limit = count + steps < logAnalyticsLogs.Length ? count + steps : logAnalyticsLogs.Length;
 
-                    log.LogInformation($"Submitting dtaa collection request for logs {count + 1} - {limit} / {logAnalyticsLogs.Length}");
+                    log.LogInformation($"Submitting data collection request for logs {count + 1} - {limit} / {logAnalyticsLogs.Length}");
 
                     LogAnalyticsLog[] logsChunk = logAnalyticsLogs.Skip(count).Take(limit).ToArray();
                     try

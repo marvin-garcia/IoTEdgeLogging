@@ -1,46 +1,43 @@
-﻿using System;
+﻿using Newtonsoft.Json;
 using System.Collections.Generic;
-using System.Text;
-using System.Text.Json.Serialization;
 
 namespace FunctionApp.Models
 {
-    [Serializable]
-    public class UploadModuleLogs
-    {
-        [Serializable]
-        public class Filter
-        {
-            [JsonPropertyName("tail")]
-            public int? Tail { get; set; }
-            [JsonPropertyName("since")]
-            public string Since { get; set; }
-            [JsonPropertyName("until")]
-            public string Until { get; set; }
-            [JsonPropertyName("loglevel")]
-            public int? LogLevel { get; set; }
-            [JsonPropertyName("regex")]
-            public string Regex { get; set; }
-        }
+    public interface IMethodPayload { }
 
-        [Serializable]
+    public class UploadModuleLogs : IMethodPayload
+    {
+        [JsonProperty("schemaVersion")]
+        public string SchemaVersion { get; set; }
+        [JsonProperty("sasUrl")]
+        public string SasUrl { get; set; }
+        [JsonProperty("items")]
+        public List<Item> Items { get; set; }
+        [JsonProperty("encoding")]
+        public string Encoding { get; set; }
+        [JsonProperty("contentType")]
+        public string ContentType { get; set; }
+
         public class Item
         {
-            [JsonPropertyName("id")]
+            [JsonProperty("id")]
             public string Id { get; set; }
-            [JsonPropertyName("filter")]
+            [JsonProperty("filter")]
             public Filter Filter { get; set; }
         }
 
-        [JsonPropertyName("schemaVersion")]
-        public string SchemaVersion { get; set; }
-        [JsonPropertyName("sasUrl")]
-        public string SasUrl { get; set; }
-        [JsonPropertyName("items")]
-        public List<Item> Items { get; set; }
-        [JsonPropertyName("encoding")]
-        public string Encoding { get; set; }
-        [JsonPropertyName("contentType")]
-        public string ContentType { get; set; }
+        public class Filter
+        {
+            [JsonProperty("tail")]
+            public int? Tail { get; set; }
+            [JsonProperty("since")]
+            public string Since { get; set; }
+            [JsonProperty("until")]
+            public string Until { get; set; }
+            [JsonProperty("loglevel")]
+            public int? LogLevel { get; set; }
+            [JsonProperty("regex")]
+            public string Regex { get; set; }
+        }
     }
 }

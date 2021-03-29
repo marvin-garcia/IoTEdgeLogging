@@ -77,19 +77,14 @@ namespace FunctionApp
                 {
                     JObject deviceJson = JsonConvert.DeserializeObject<JObject>(device);
                     string deviceId = deviceJson.GetValue("deviceId").ToString();
-                    
-                    var data = new
+
+                    var data = new UploadModuleLogs()
                     {
-                        deviceId = deviceId,
-                        moduleId = moduleId,
-                        methodName = methodName,
-                        methodPayload = new UploadModuleLogs()
-                        {
-                            SchemaVersion = "1.0",
-                            SasUrl = sasUri.AbsoluteUri,
-                            Encoding = _logsEncoding,
-                            ContentType = _logsContentType,
-                            Items = new List<UploadModuleLogs.Item>()
+                        SchemaVersion = "1.0",
+                        SasUrl = sasUri.AbsoluteUri,
+                        Encoding = _logsEncoding,
+                        ContentType = _logsContentType,
+                        Items = new List<UploadModuleLogs.Item>()
                             {
                                 new UploadModuleLogs.Item()
                                 {
@@ -103,7 +98,6 @@ namespace FunctionApp
                                     }
                                 }
                             }
-                        }
                     };
 
                     string serializedData = JsonConvert.SerializeObject(
