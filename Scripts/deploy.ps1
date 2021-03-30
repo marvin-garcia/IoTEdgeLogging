@@ -122,7 +122,7 @@ function New-IoTEnvironment()
     $vm_password = New-Password -length $password_length
 
     #region IoT Edge VM parameters
-    $edge_vm_name = "linuxgateway-1"
+    $edge_vm_name = "iotedgevm-$($env_hash)"
     
     # We will use VM with at least 2 cores and 8 GB of memory as gateway host.
     $edge_vm_sizes = az vm list-sizes --location $location | ConvertFrom-Json `
@@ -143,7 +143,7 @@ function New-IoTEnvironment()
     #endregion
 
     #region virtual network parameters
-    $vnet_name = "iiot-vnet"
+    $vnet_name = "iot-vnet-$($env_hash)"
     $vnet_prefix = "10.0.0.0/16"
     $edge_subnet_name = "iotedge"
     $edge_subnet_prefix = "10.0.0.0/24"
@@ -212,15 +212,14 @@ function New-IoTEnvironment()
     #endregion
 
     #region build and release function app
-    Set-Location .\FunctionApp\FunctionApp\
-    dotnet build /p:DeployOnBuild=true /p:DeployTarget=Package
-    dotnet publish /p:CreatePackageOnPublish=true -o .\bin\Publish
-    Compress-Archive -Path .\bin\publish\*  -DestinationPath deploy.zip
+    dotnet build /p:DeployOnBuild=true /p:DeployTarget=Package .\FunctionApp\FunctionApp\
+    dotnet publish /p:CreatePackageOnPublish=true -o .\FunctionApp\FunctionApp\bin\Publish .\FunctionApp\FunctionApp\
+    Compress-Archive -Path .\FunctionApp\FunctionApp\bin\publish\*  -DestinationPath .\FunctionApp\FunctionApp\deploy.zip -Update
     #endregion
 
     #region function app
     Write-Host "\r\nDeploying code to Function App $function_app_name"
-    az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src .\deploy.zip
+    az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src .\FunctionApp\FunctionApp\deploy.zip
     #endregion
 
     Write-Host ""
