@@ -24,7 +24,7 @@ jobs:
     - name: Build
       run: dotnet build /p:DeployOnBuild=true /p:DeployTarget=Package "${{ env.WORKING_DIRECTORY }}" --no-restore
     - name: Publish
-      run: dotnet publish /p:CreatePackageOnPublish=true -o "${{ env.PUBLISH_DIRECTORY }}"" "${{ env.WORKING_DIRECTORY }}"
+      run: dotnet publish /p:CreatePackageOnPublish=true -o "${{ env.PUBLISH_DIRECTORY }}" "${{ env.WORKING_DIRECTORY }}"
     - name: switching from HTTPS to SSH
       run: git remote set-url origin ${{ secrets.ssh }}
     - name: check for changes
