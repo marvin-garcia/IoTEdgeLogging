@@ -49,39 +49,6 @@ Verify your prerequisites to ensure you have the right versions for Azure CLI an
 
 
 
-### Subscribe the storage account for blob create events
-
-Like it was mentioned before, you will process log files as soon as they are uploaded to your storage account. To react to every uploaded file, you have to link your storage account to  an event grid subscription.
-
-> NOTE: Alternatively, you could change the [ProcessModuleLogs](FunctionApp/FunctionApp/ProcessModuleLogs.cs)  function to use blob triggers instead of leveraging event grid. However, blob trigger relies on polling that works as a hybrid between inspecting logs and running periodic container scans, storage logs are created on a "best effort" basis and therefore there is no guarantee that all events will be captured, missing storage logs as a consequence. Find more information about blob trigger limitations and alternatives [here](https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-storage-blob-trigger?tabs=csharp#polling).
-
-
-
-Create the event grid subscription using the [az eventgrid event-subscription](https://docs.microsoft.com/en-us/cli/azure/eventgrid/event-subscription?view=azure-cli-latest#az_eventgrid_event_subscription_create) command. Open a PowerShell console and run the code below.
-
-In the following code, replace the storage account, container and queue names with your values:
-
-```powershell
-$accountName = "<STORAGE_ACCOUNT_NAME>"
-$containerName = "<STORAGE_CONTAINER_NAME"
-$queueName = "<STORAGE_QUEUE_NAME>"
-
-$accountId = $(az storage account show --name $accountName --query id -o tsv)
-$endpoint = "$($accountId)/queueservices/default/queues/$($queueName)"
-$subjectFilter = "/blobServices/default/containers/$($containerName)/"
-
-az eventgrid event-subscription create `
-	--name ModuleLogsSubscription `
-	--source-resource-id $accountId `
-	--endpoint-type storagequeue `
-	--endpoint $endpoint `
-	--event-delivery-schema eventgridschema `
-	--included-event-types "Microsoft.Storage.BlobCreated" `
-	--subject-begins-with $subjectFilter
-```
-
-
-
 ## Get the code
 
 Clone the repository:
