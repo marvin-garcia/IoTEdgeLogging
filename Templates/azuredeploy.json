@@ -213,6 +213,20 @@
       "metadata": {
         "description": "Only retrieve logs since this time, as a duration (1d, 90m, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp."
       }
+    },
+    "templateUrl": {
+      "type": "string",
+      "defaultValue": "https://raw.githubusercontent.com/marvin-garcia/IoTEdgeLogging",
+      "metadata": {
+        "description": "GitHub repo URL"
+      }
+    },
+    "branchName": {
+      "type": "string",
+      "defaultValue": "master",
+      "metadata": {
+        "description": "GitHub repo branch name"
+      }
     }
   },
   "variables": {
@@ -236,9 +250,7 @@
     "functionAppHostingPlanName": "[concat(parameters('functionAppName'), '-plan')]",
     "functionStorageAccountName": "[concat(uniquestring(resourceGroup().id), 'function')]",
     "functionStorageAccountSku": "Standard_LRS",
-    "appInsightsName": "[parameters('functionAppName')]",
-    "templateUrl": "https://raw.githubusercontent.com/marvin-garcia/IoTEdgeLogging",
-    "branchName": "master"
+    "appInsightsName": "[parameters('functionAppName')]"
   },
   "resources": [
     {
@@ -397,9 +409,9 @@
         "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": [
-            "[concat(variables('templateUrl'), '/', variables('branchName'), '/Scripts/dps-enroll.ps1')]",
-            "[concat(variables('templateUrl'), '/', variables('branchName'), '/Scripts/edge-setup.ps1')]",
-            "[concat(variables('templateUrl'), '/', variables('branchName'), '/Scripts/edge-setup.sh')]"
+            "[concat(parameters('templateUrl'), '/', parameters('branchName'), '/Scripts/dps-enroll.ps1')]",
+            "[concat(parameters('templateUrl'), '/', parameters('branchName'), '/Scripts/edge-setup.ps1')]",
+            "[concat(parameters('templateUrl'), '/', parameters('branchName'), '/Scripts/edge-setup.sh')]"
           ]
         },
         "protectedSettings": {
