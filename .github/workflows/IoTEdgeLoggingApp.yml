@@ -1,4 +1,4 @@
-name: Build and deploy .NET Core Function App to IoTEdgeLoggingApp
+name: Build and publish .NET Core Function App zip package
 on:
   push:
     branches:
@@ -6,30 +6,62 @@ on:
     paths:
     - 'FunctionApp/**'
 env:
-  AZURE_FUNCTIONAPP_NAME: IoTEdgeLoggingApp
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: FunctionApp\published
-  AZURE_FUNCTIONAPP_PUBLISH_PROFILE: ${{ secrets.IOTEDGELOGGINGAPP }}
+  WORKING_DIRECTORY: FunctionApp\FunctionApp
+  PUBLISH_DIRECTORY: FunctionApp\FunctionApp\bin\Publish
   CONFIGURATION: Release
   DOTNET_CORE_VERSION: 3.1.x
-  WORKING_DIRECTORY: FunctionApp
 jobs:
-  build-and-deploy:
+  build-and-package:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@master
-    - name: Setup .NET Core
+    - name: Build
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
     - name: Restore
       run: dotnet restore "${{ env.WORKING_DIRECTORY }}"
     - name: Build
-      run: dotnet build "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }} --no-restore
+      run: dotnet build /p:DeployOnBuild=true /p:DeployTarget=Package "${{ env.WORKING_DIRECTORY }}" --no-restore
     - name: Publish
-      run: dotnet publish "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }} --no-build --output "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
-    - name: Deploy to Azure Function App
-      uses: Azure/functions-action@v1
-      with:
-        app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
-        publish-profile: ${{ env.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
-        package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+      run: dotnet publish /p:CreatePackageOnPublish=true -o "${{ env.PUBLISH_DIRECTORY }}"" "${{ env.WORKING_DIRECTORY }}"
+    - name: switching from HTTPS to SSH
+      run: git remote set-url origin ${{ secrets.ssh }}
+    - name: check for changes
+      run: git status
+    - name: stage changed files
+      run: git add .
+    - name: commit changed files
+      run: git commit -m "Addin Function App zip deploy package"
+    - name: fetch from master
+      run: git fetch origin master
+    - name: push code to master
+      run: git push origin HEAD:master
+# env:
+#   AZURE_FUNCTIONAPP_NAME: IoTEdgeLoggingApp
+#   AZURE_FUNCTIONAPP_PACKAGE_PATH: FunctionApp\published
+#   AZURE_FUNCTIONAPP_PUBLISH_PROFILE: ${{ secrets.IOTEDGELOGGINGAPP }}
+#   CONFIGURATION: Release
+#   DOTNET_CORE_VERSION: 3.1.x
+#   WORKING_DIRECTORY: FunctionApp
+# jobs:
+#   build-and-deploy:
+#     runs-on: windows-latest
+#     steps:
+#     - uses: actions/checkout@master
+#     - name: Setup .NET Core
+#       uses: actions/setup-dotnet@v1
+#       with:
+#         dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
+#     - name: Restore
+#       run: dotnet restore "${{ env.WORKING_DIRECTORY }}"
+#     - name: Build
+#       run: dotnet build "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }} --no-restore
+#     - name: Publish
+#       run: dotnet publish "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }} --no-build --output "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
+#     - name: Deploy to Azure Function App
+#       uses: Azure/functions-action@v1
+#       with:
+#         app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+#         publish-profile: ${{ env.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+#         package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
