@@ -39,11 +39,9 @@ In order to successfully deploy this solution, you will need the following:
 
 ### Prerequisite check
 
-Verify your prerequisites to ensure you have the right versions for Azure CLI and Azure Functions Core Tools:
+Verify your prerequisites to ensure you have the right versions for Azure CLI and dotnet. Open a PowerShell terminal and follow the instructions below:
 
-- In a terminal or command window, run `func --version` to check that the Azure Functions Core Tools are version 3.x.
-
-- Run `az --version` to check that the Azure CLI version is 2.4 or later.
+- Run `az --version` to check that the Azure CLI version is 2.21 or later.
 - Run `az login` to sign in to Azure and verify an active subscription.
 - Run `dotnet --list-sdks` to check that .NET Core SDK version 3.1.x is installed
 
