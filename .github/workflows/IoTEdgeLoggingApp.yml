@@ -9,7 +9,6 @@ env:
   DOTNET_CORE_VERSION: 3.1.x
   WORKING_DIRECTORY: FunctionApp/FunctionApp
   PUBLISH_DIRECTORY: FunctionApp/FunctionApp/bin/Publish
-  ZIP_DEPLOY: FunctionApp/FunctionApp/deploy.zip
 jobs:
   build-and-package:
     runs-on: ubuntu-latest
@@ -20,20 +19,20 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
     - name: Restore
-      run: dotnet restore "${{ env.WORKING_DIRECTORY }}"
+      run: dotnet restore ${{ env.WORKING_DIRECTORY }}
     - name: Build
-      run: dotnet build /p:DeployOnBuild=true /p:DeployTarget=Package "${{ env.WORKING_DIRECTORY }}" --no-restore
+      run: dotnet build /p:DeployOnBuild=true /p:DeployTarget=Package ${{ env.WORKING_DIRECTORY }} --no-restore
     - name: Publish
-      run: dotnet publish /p:CreatePackageOnPublish=true -o "${{ env.PUBLISH_DIRECTORY }}" "${{ env.WORKING_DIRECTORY }}"
+      run: dotnet publish /p:CreatePackageOnPublish=true -o ${{ env.PUBLISH_DIRECTORY }} ${{ env.WORKING_DIRECTORY }}
     - name: Package
       shell: pwsh
-      run: Compress-Archive -Path "{{ env.PUBLISH_DIRECTORY }}/*"  -DestinationPath "{{ env.ZIP_DEPLOY }}" -Update
+      run: Compress-Archive -Path ${{ env.PUBLISH_DIRECTORY }}/*  -DestinationPath ${{ env.WORKING_DIRECTORY }}/deploy.zip -Update
     - name: switching from HTTPS to SSH
       run: git remote set-url origin ${{ secrets.SSH }}
     - name: check for changes
       run: git status
     - name: stage changed files
-      run: git add "{{ env.ZIP_DEPLOY }}"
+      run: git add ${{ env.WORKING_DIRECTORY }}/deploy.zip
     - name: commit changed files
       run: git commit -m "Adding Function App zip deploy package"
     - name: fetch from master
