@@ -51,7 +51,7 @@ jobs:
     # - name: Fetch from master
     #   run: git fetch origin master
     - name: Push code to master
-      run: git push origin HEAD:master
+      run: git push
 # env:
 #   AZURE_FUNCTIONAPP_NAME: IoTEdgeLoggingApp
 #   AZURE_FUNCTIONAPP_PACKAGE_PATH: FunctionApp\published
