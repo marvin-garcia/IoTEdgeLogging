@@ -89,7 +89,7 @@ $body = @{
         tags = @{
             __os__ = $os
             __type__ = "iotedge"
-            __app__ = "iotedgelogs"
+            logPullEnabled = "true"
         }
     }
     registrationId = $registrationId

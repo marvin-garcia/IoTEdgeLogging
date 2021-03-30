@@ -103,7 +103,7 @@ function New-IoTEnvironment()
     $env_hash = Get-EnvironmentHash
     $iot_hub_name_prefix = "iothub"
     $iot_hub_name = "$($iot_hub_name_prefix)-$($env_hash)"
-    $deployment_condition = "tags.__app__='iotedgelogs'"
+    $deployment_condition = "tags.logPullEnabled='true'"
     $device_query = "SELECT * FROM devices WHERE $($deployment_condition)"
 
     $function_app_name = "iotedgelogsapp-$($env_hash)"
