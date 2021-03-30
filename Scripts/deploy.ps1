@@ -213,7 +213,10 @@ function New-IoTEnvironment()
 
     #region function app
     Write-Host "\r\nDeploying code to Function App $function_app_name"
-    az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src .\FunctionApp\FunctionApp\deploy.zip
+    $current_path = $MyInvocation.MyCommand.Path
+    $parent_path = Split-Path $current_path -Parent
+    $parent_path = Split-Path $parent_path -Parent
+    az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src "$($parent_path)/deploy.zip"
     #endregion
 
     Write-Host ""
