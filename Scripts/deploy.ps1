@@ -214,6 +214,7 @@ function New-IoTEnvironment()
     #region build and release function app
     dotnet build /p:DeployOnBuild=true /p:DeployTarget=Package .\FunctionApp\FunctionApp\
     dotnet publish /p:CreatePackageOnPublish=true -o .\FunctionApp\FunctionApp\bin\Publish .\FunctionApp\FunctionApp\
+    Remove-Item -Path .\FunctionApp\FunctionApp\deploy.zip -ErrorAction Ignore
     Compress-Archive -Path .\FunctionApp\FunctionApp\bin\publish\*  -DestinationPath .\FunctionApp\FunctionApp\deploy.zip -Update
     #endregion
 
