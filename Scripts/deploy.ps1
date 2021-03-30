@@ -103,7 +103,7 @@ function New-IoTEnvironment()
     $env_hash = Get-EnvironmentHash
     $iot_hub_name_prefix = "iothub"
     $iot_hub_name = "$($iot_hub_name_prefix)-$($env_hash)"
-    $deployment_condition = "tags.__type__='iotedge'"
+    $deployment_condition = "tags.__app__='iotedgelogs'"
     $device_query = "SELECT * FROM devices WHERE $($deployment_condition)"
 
     $function_app_name = "iotedgelogsapp-$($env_hash)"
@@ -211,10 +211,16 @@ function New-IoTEnvironment()
         --priority $priority
     #endregion
 
+    #region build and release function app
+    Set-Location .\FunctionApp\FunctionApp\
+    dotnet build /p:DeployOnBuild=true /p:DeployTarget=Package
+    dotnet publish /p:CreatePackageOnPublish=true -o .\bin\Publish
+    Compress-Archive -Path .\bin\publish\*  -DestinationPath deploy.zip
+    #endregion
+
     #region function app
     Write-Host "\r\nDeploying code to Function App $function_app_name"
-    Set-Location .\FunctionApp\FunctionApp\
-    func azure functionapp publish $function_app_name
+    az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src .\deploy.zip
     #endregion
 
     Write-Host ""
