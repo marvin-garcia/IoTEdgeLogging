@@ -6,13 +6,13 @@ on:
     paths:
     - 'FunctionApp/**'
 env:
-  WORKING_DIRECTORY: FunctionApp\FunctionApp
-  PUBLISH_DIRECTORY: FunctionApp\FunctionApp\bin\Publish
-  CONFIGURATION: Release
   DOTNET_CORE_VERSION: 3.1.x
+  WORKING_DIRECTORY: FunctionApp/FunctionApp
+  PUBLISH_DIRECTORY: FunctionApp/FunctionApp/bin/Publish
+  ZIP_DEPLOY: FunctionApp/FunctionApp/deploy.zip
 jobs:
   build-and-package:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
     - name: Build
@@ -25,14 +25,17 @@ jobs:
       run: dotnet build /p:DeployOnBuild=true /p:DeployTarget=Package "${{ env.WORKING_DIRECTORY }}" --no-restore
     - name: Publish
       run: dotnet publish /p:CreatePackageOnPublish=true -o "${{ env.PUBLISH_DIRECTORY }}" "${{ env.WORKING_DIRECTORY }}"
+    - name: Package
+      shell: pwsh
+      run: Compress-Archive -Path "{{ env.PUBLISH_DIRECTORY }}/*"  -DestinationPath "{{ env.ZIP_DEPLOY }}" -Update
     - name: switching from HTTPS to SSH
-      run: git remote set-url origin ${{ secrets.ssh }}
+      run: git remote set-url origin ${{ secrets.SSH }}
     - name: check for changes
       run: git status
     - name: stage changed files
-      run: git add .
+      run: git add "{{ env.ZIP_DEPLOY }}"
     - name: commit changed files
-      run: git commit -m "Addin Function App zip deploy package"
+      run: git commit -m "Adding Function App zip deploy package"
     - name: fetch from master
       run: git fetch origin master
     - name: push code to master
