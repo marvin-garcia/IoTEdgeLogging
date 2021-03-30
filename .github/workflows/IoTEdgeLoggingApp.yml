@@ -48,8 +48,8 @@ jobs:
       run: git config --global user.name ${{ env.FLOW_NAME }}
     - name: Commit changed files
       run: git commit -m "Adding Function App zip deploy package"
-    - name: Fetch from master
-      run: git fetch origin master
+    # - name: Fetch from master
+    #   run: git fetch origin master
     - name: Push code to master
       run: git push origin HEAD:master
 # env:
