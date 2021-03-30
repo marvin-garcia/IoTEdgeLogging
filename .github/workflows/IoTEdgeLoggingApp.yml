@@ -14,6 +14,8 @@ env:
   DOTNET_CORE_VERSION: 3.1.x
   WORKING_DIRECTORY: FunctionApp/FunctionApp
   PUBLISH_DIRECTORY: FunctionApp/FunctionApp/bin/Publish
+  FLOW_EMAIL: marvin.garcia.b@gmail.com
+  FLOW_NAME: "github workflow"
 jobs:
   build-and-package:
     runs-on: ubuntu-latest
@@ -32,12 +34,16 @@ jobs:
     - name: Package
       shell: pwsh
       run: Compress-Archive -Path ${{ env.PUBLISH_DIRECTORY }}/*  -DestinationPath ${{ env.WORKING_DIRECTORY }}/deploy.zip -Update
-    - name: switching from HTTPS to SSH
+    - name: Switching from HTTPS to SSH
       run: git remote set-url origin ${{ secrets.SSH }}
-    - name: check for changes
+    - name: Check for changes
       run: git status
-    - name: stage changed files
+    - name: Stage changed files
       run: git add ${{ env.WORKING_DIRECTORY }}/deploy.zip
+    - name: Set flow email in Git config
+      run: git config --global user.email ${{ env.FLOW_EMAIL }}
+    - name: Set flow name in Git config
+      run: git config --global user.name ${{ env.FLOW_NAME }}
     - name: commit changed files
       run: git commit -m "Adding Function App zip deploy package"
     - name: fetch from master
