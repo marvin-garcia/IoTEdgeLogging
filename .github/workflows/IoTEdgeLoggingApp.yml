@@ -34,6 +34,8 @@ jobs:
     - name: Package
       shell: pwsh
       run: Compress-Archive -Path ${{ env.PUBLISH_DIRECTORY }}/*  -DestinationPath ${{ env.WORKING_DIRECTORY }}/deploy.zip -Update
+    - name: Writing SSH private key to local disk
+      run: echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
     - name: Switching from HTTPS to SSH
       run: git remote set-url origin ${{ secrets.SSH }}
     - name: Check for changes
@@ -44,11 +46,11 @@ jobs:
       run: git config --global user.email ${{ env.FLOW_EMAIL }}
     - name: Set flow name in Git config
       run: git config --global user.name ${{ env.FLOW_NAME }}
-    - name: commit changed files
+    - name: Commit changed files
       run: git commit -m "Adding Function App zip deploy package"
-    - name: fetch from master
+    - name: Fetch from master
       run: git fetch origin master
-    - name: push code to master
+    - name: Push code to master
       run: git push origin HEAD:master
 # env:
 #   AZURE_FUNCTIONAPP_NAME: IoTEdgeLoggingApp
