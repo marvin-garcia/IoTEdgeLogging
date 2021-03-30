@@ -87,8 +87,9 @@ $body = @{
     deviceId = $deviceId
     initialTwin = @{
         tags = @{
+            __os__ = $os
             __type__ = "iotedge"
-            os = $os
+            __app__ = "iotedgelogs"
         }
     }
     registrationId = $registrationId
