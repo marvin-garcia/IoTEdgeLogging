@@ -211,13 +211,6 @@ function New-IoTEnvironment()
         --priority $priority
     #endregion
 
-    #region build and release function app
-    dotnet build /p:DeployOnBuild=true /p:DeployTarget=Package .\FunctionApp\FunctionApp\
-    dotnet publish /p:CreatePackageOnPublish=true -o .\FunctionApp\FunctionApp\bin\Publish .\FunctionApp\FunctionApp\
-    Remove-Item -Path .\FunctionApp\FunctionApp\deploy.zip -ErrorAction Ignore
-    Compress-Archive -Path .\FunctionApp\FunctionApp\bin\publish\*  -DestinationPath .\FunctionApp\FunctionApp\deploy.zip -Update
-    #endregion
-
     #region function app
     Write-Host "\r\nDeploying code to Function App $function_app_name"
     az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src .\FunctionApp\FunctionApp\deploy.zip
