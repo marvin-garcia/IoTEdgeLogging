@@ -1,35 +1,26 @@
 function New-IoTEnvironment()
 {
-    #region obtain deployment location
-    $locations = Get-ResourceGroupLocations -provider 'Microsoft.Devices' -typeName 'ProvisioningServices'
+    # Get environment hash for name uniqueness
+    $env_hash = Get-EnvironmentHash
     
-    Write-Host "Please choose a location for your deployment from this list (using its Index):"
-    for ($index = 0; $index -lt $locations.Count; $index++)
+    # verify deploy zip package is present in directory
+    $current_path = Split-Path $MyInvocation.ScriptName -Parent
+    $parent_path = Split-Path $current_path -Parent
+    if (!(Test-Path -Path "$($parent_path)/FunctionApp/FunctionApp/deploy.zip"))
     {
-        Write-Host "$($index + 1): $($locations[$index])"
+        Write-Error "Unable to find Function app zip deploy file. Aborting."
+        return
     }
-    while ($true)
-    {
-        $option = Read-Host -Prompt ">"
-        try
-        {
-            if ([int]$option -ge 1 -and [int]$option -le $locations.Count)
-            {
-                break
-            }
-        }
-        catch
-        {
-            Write-Host "Invalid index '$($option)' provided."
-        }
-        Write-Host "Choose from the list using an index between 1 and $($locations.Count)."
-    }
-    $location_name = $locations[$option - 1]
-    $location = $location_name.Replace(' ', '').ToLower()
-    Write-Host "Using location $($location)"
-    #endregion
+    
+    $create_iot_hub = $false
+    $ask_for_location = $false
+    $create_workspace = $false
+    $create_storage = $false
+    $create_container = $false
+    $deployment_condition = "tags.logPullEnabled='true'"
 
     #region obtain resource group name
+    $create_resource_group = $false
     $resource_group = $null
     $first = $true
     while ([string]::IsNullOrEmpty($resource_group) -or ($resource_group -notmatch "^[a-z0-9-_]*$"))
@@ -50,30 +41,32 @@ function New-IoTEnvironment()
     $resourceGroup = az group show --name $resource_group | ConvertFrom-Json
     if (!$resourceGroup)
     {
-        Write-Host "Resource group '$resource_group' does not exist."
-        
-        $resourceGroup = az group create --name $resource_group --location $location | ConvertFrom-Json
-        Write-Host "Created new resource group $($resource_group) in $($resourceGroup.location)."
+        Write-Host "Resource group '$resource_group' does not exist. It will be created later in the deployment."
+        $create_resource_group = $true
+    }
+    else {
+        Write-Host "Resource group '$resource_group' already exists in current subscription."
     }
     #endregion
 
-    #region log analytics workspace Id and key
-    $createWorkspace = $false
-    $workspaces = az monitor log-analytics workspace list --query '[].id' -o tsv
-    if ($workspaces.Count -gt 0)
+    #region iot hub details
+    $iot_hubs = az iot hub list | ConvertFrom-Json
+    if ($iot_hubs.Count -gt 0)
     {
-        Write-Host "Please choose a Log Analytics workspace to use for your deployment from this list (using its Index):"
-        for ($index = 0; $index -lt $workspaces.Count; $index++)
+        $iot_hub_options = @("Create new IoT hub", "Use existing IoT hub")
+        Write-Host
+        Write-Host "Please choose an option from the list for IoT hub (using its Index):"
+        for ($index = 0; $index -lt $iot_hub_options.Count; $index++)
         {
-            Write-Host
-            Write-Host "$($index + 1): $($workspaces[$index])"
+            # Write-Host
+            Write-Host "$($index + 1): $($iot_hub_options[$index])"
         }
         while ($true)
         {
             $option = Read-Host -Prompt ">"
             try
             {
-                if ([int]$option -ge 1 -and [int]$option -le $workspaces.Count)
+                if ([int]$option -ge 1 -and [int]$option -le $iot_hub_options.Count)
                 {
                     break
                 }
@@ -82,46 +75,371 @@ function New-IoTEnvironment()
             {
                 Write-Host "Invalid index '$($option)' provided."
             }
-            Write-Host "Choose from the list using an index between 1 and $($workspaces.Count)."
+            Write-Host "Choose from the list using an index between 1 and $($iot_hub_options.Count)."
         }
-        $workspaceResourceGroup = az resource show --id $workspaces[$option - 1] --query resourceGroup -o tsv
-        $workspaceName = az resource show --id $workspaces[$option - 1] --query name -o tsv
-        $workspaceId = az resource show --id $workspaces[$option - 1] --query 'properties.customerId' -o tsv
-        $workspaceKey =  az monitor log-analytics workspace get-shared-keys -g $workspaceResourceGroup -n $workspaceName --query primarySharedKey -o tsv
 
-        $location = $location_name.Replace(' ', '').ToLower()
-        Write-Host "Using location $($location)"
+        #region choose existing iot hub
+        if ($option -eq 2)
+        {
+            Write-Host
+            Write-Host "Please choose an IoT hub to use from this list (using its Index):"
+            for ($index = 0; $index -lt $iot_hubs.Count; $index++)
+            {
+                Write-Host
+                Write-Host "$($index + 1): $($iot_hubs[$index].id)"
+            }
+            while ($true)
+            {
+                $option = Read-Host -Prompt ">"
+                try
+                {
+                    if ([int]$option -ge 1 -and [int]$option -le $iot_hubs.Count)
+                    {
+                        break
+                    }
+                }
+                catch
+                {
+                    Write-Host "Invalid index '$($option)' provided."
+                }
+                Write-Host "Choose from the list using an index between 1 and $($iot_hubs.Count)."
+            }
+
+            $iot_hub_name = $iot_hubs[$option - 1].name
+            $iot_hub_resource_group = $iot_hubs[$option - 1].resourcegroup
+            $location = $iot_hubs[$option - 1].location
+
+            # handle IoT hub service policy
+            $iot_hub_policies = az iot hub policy list --hub-name $iot_hub_name | ConvertFrom-Json
+            $iot_hub_policy = $iot_hub_policies | Where-Object { $_.rights -contains 'serviceconnect' -and $_.rights -contains 'registryread' }
+            if ($null -eq $iot_hub_policy)
+            {
+                $iot_hub_policy_name = "iotedgelogs"
+                az iot hub policy create --hub-name $iot_hub_name --name $iot_hub_policy_name --permissions "RegistryRead ServiceConnect"
+            }
+            else
+            {
+                $iot_hub_policy_name = $iot_hub_policy.keyName
+            }
+        }
+        #endregion
+        else
+        {
+            $create_iot_hub = $true
+            $ask_for_location = $true
+        }
     }
     else
     {
-        $createWorkspace = $true
-        Write-Error "The current version of this script requires you to use an existing Log Analytics workspace. Please create one and run the script again."
-        return
+        $create_iot_hub = $true
+        $ask_for_location = $true
+    }
+
+    if ($create_iot_hub)
+    {
+        $iot_hub_name_prefix = "iothub"
+        $iot_hub_name = "$($iot_hub_name_prefix)-$($env_hash)"
+        $iot_hub_resource_group = $resource_group
+        $iot_hub_policy_name = "iotedgelogs"
+    }
+    else
+    {
+        Write-Warning "NOTE: You must update your IoT edge devices' twins with $($deployment_condition) to collect logs from their modules."
     }
     #endregion
 
-    $env_hash = Get-EnvironmentHash
-    $iot_hub_name_prefix = "iothub"
-    $iot_hub_name = "$($iot_hub_name_prefix)-$($env_hash)"
-    $deployment_condition = "tags.logPullEnabled='true'"
-    $device_query = "SELECT * FROM devices WHERE $($deployment_condition)"
+    #region log analytics workspace
+    $workspaces = az monitor log-analytics workspace list | ConvertFrom-Json
+    if ($workspaces.Count -gt 0)
+    {
+        $workspace_options = @("Create new log analytics workspace", "Use existing log analytics workspace")
+        Write-Host
+        Write-Host "Please choose an option from the list for Log Analytics (using its Index):"
+        for ($index = 0; $index -lt $workspace_options.Count; $index++)
+        {
+            #Write-Host
+            Write-Host "$($index + 1): $($workspace_options[$index])"
+        }
+        while ($true)
+        {
+            $option = Read-Host -Prompt ">"
+            try
+            {
+                if ([int]$option -ge 1 -and [int]$option -le $workspace_options.Count)
+                {
+                    break
+                }
+            }
+            catch
+            {
+                Write-Host "Invalid index '$($option)' provided."
+            }
+            Write-Host "Choose from the list using an index between 1 and $($workspace_options.Count)."
+        }
 
-    $function_app_name = "iotedgelogsapp-$($env_hash)"
+        #region existing workspace
+        if ($option -eq 2)
+        {
+            Write-Host
+            Write-Host "Please choose an log analytics workspace to use from this list (using its Index):"
+            for ($index = 0; $index -lt $workspaces.Count; $index++)
+            {
+                Write-Host
+                Write-Host "$($index + 1): $($workspaces[$index].id)"
+            }
+            while ($true)
+            {
+                $option = Read-Host -Prompt ">"
+                try
+                {
+                    if ([int]$option -ge 1 -and [int]$option -le $workspaces.Count)
+                    {
+                        break
+                    }
+                }
+                catch
+                {
+                    Write-Host "Invalid index '$($option)' provided."
+                }
+                Write-Host "Choose from the list using an index between 1 and $($workspaces.Count)."
+            }
 
-    #region virtual machine details
-    $skus = az vm list-skus | ConvertFrom-Json -AsHashtable
-    $vm_skus = $skus | Where-Object { $_.resourceType -eq 'virtualMachines' -and $_.locations -contains $location -and $_.restrictions.Count -eq 0 }
-    $vm_sku_names = $vm_skus | Select-Object -ExpandProperty Name -Unique
+            $workspace_name = $workspaces[$option - 1].name
+            $workspace_resource_group = $workspaces[$option - 1].resourceGroup
+        }
+        #endregion
+        else
+        {
+            $create_workspace = $true
+        }
+    }
+    else
+    {
+        $create_workspace = $true
+    }
+
+    if ($create_workspace)
+    {
+        $workspace_name = "iotedgelogging-$($env_hash)"
+        $workspace_resource_group = $resource_group
+    }
     #endregion
+
+    #region storage account
+    $storage_accounts = az storage account list | ConvertFrom-Json
+    if ($storage_accounts.Count -gt 0)
+    {
+        $storage_options = @("Create new storage account to store logs", "Use existing storage account to store logs")
+        Write-Host
+        Write-Host "Please choose an option from the list for storage account (using its Index):"
+        for ($index = 0; $index -lt $storage_options.Count; $index++)
+        {
+            #Write-Host
+            Write-Host "$($index + 1): $($storage_options[$index])"
+        }
+        while ($true)
+        {
+            $option = Read-Host -Prompt ">"
+            try
+            {
+                if ([int]$option -ge 1 -and [int]$option -le $storage_options.Count)
+                {
+                    break
+                }
+            }
+            catch
+            {
+                Write-Host "Invalid index '$($option)' provided."
+            }
+            Write-Host "Choose from the list using an index between 1 and $($storage_options.Count)."
+        }
+
+        #region existing storage account
+        if ($option -eq 2)
+        {
+            Write-Host
+            Write-Host "Please choose a storage account to use from this list (using its Index):"
+            for ($index = 0; $index -lt $storage_accounts.Count; $index++)
+            {
+                Write-Host
+                Write-Host "$($index + 1): $($storage_accounts[$index].id)"
+            }
+            while ($true)
+            {
+                $option = Read-Host -Prompt ">"
+                try
+                {
+                    if ([int]$option -ge 1 -and [int]$option -le $storage_accounts.Count)
+                    {
+                        break
+                    }
+                }
+                catch
+                {
+                    Write-Host "Invalid index '$($option)' provided."
+                }
+                Write-Host "Choose from the list using an index between 1 and $($storage_accounts.Count)."
+            }
+
+            $storage_account_name = $storage_accounts[$option - 1].name
+            $storage_account_resource_group = $storage_accounts[$option - 1].resourceGroup
+            $storage_key = az storage account keys list --account-name $storage_account_name --query primaryKey -o tsv
+
+            #region storage container
+            $storage_containers = az storage account list  --account-name $storage_account_name --account-key $storage_key | ConvertFrom-Json
+            if ($storage_accounts.Count -gt 0)
+            {
+                $container_options = @("Create new storage container to store logs", "Use existing storage container to store logs")
+                Write-Host
+                Write-Host "Please choose an option from the list for storage container (using its Index):"
+                for ($index = 0; $index -lt $container_options.Count; $index++)
+                {
+                    #Write-Host
+                    Write-Host "$($index + 1): $($container_options[$index])"
+                }
+                while ($true)
+                {
+                    $option = Read-Host -Prompt ">"
+                    try
+                    {
+                        if ([int]$option -ge 1 -and [int]$option -le $container_options.Count)
+                        {
+                            break
+                        }
+                    }
+                    catch
+                    {
+                        Write-Host "Invalid index '$($option)' provided."
+                    }
+                    Write-Host "Choose from the list using an index between 1 and $($container_options.Count)."
+                }
+
+                #region existing container
+                if ($option -eq 2)
+                {
+                    Write-Host
+                    Write-Host "Please choose a storage container to use from this list (using its Index):"
+                    for ($index = 0; $index -lt $storage_containers.Count; $index++)
+                    {
+                        Write-Host
+                        Write-Host "$($index + 1): $($storage_containers[$index].id)"
+                    }
+                    while ($true)
+                    {
+                        $option = Read-Host -Prompt ">"
+                        try
+                        {
+                            if ([int]$option -ge 1 -and [int]$option -le $storage_containers.Count)
+                            {
+                                break
+                            }
+                        }
+                        catch
+                        {
+                            Write-Host "Invalid index '$($option)' provided."
+                        }
+                        Write-Host "Choose from the list using an index between 1 and $($storage_containers.Count)."
+                    }
+
+                    $storage_container_name = $storage_containers[$option - 1].name
+                }
+                #endregion
+                else
+                {
+                    $create_container = $true
+                    $storage_container_name = "iotedgemodulelogs$($env_hash)"
+                }
+            }
+            else
+            {
+                $create_container = $true
+                $storage_container_name = "iotedgemodulelogs$($env_hash)"
+            }
+            #endregion
+        }
+        #endregion
+        else
+        {
+            $create_storage = $true
+            $create_container = $true
+        }
+    }
+    else
+    {
+        $create_storage = $true
+        $create_container = $true
+    }
+
+    if ($create_storage)
+    {
+        $storage_account_name = "iotedgelogs$($env_hash)"
+        $storage_account_resource_group = $resource_group
+    }
+
+    if ($create_container)
+    {
+        $storage_container_name = "modulelogs$($env_hash)"
+    }
+    $storage_queue_name = "modulelogs$($env_hash)"
+    #endregion
+
+    #region obtain deployment location
+    if ($ask_for_location)
+    {
+        $locations = Get-ResourceGroupLocations -provider 'Microsoft.Devices' -typeName 'ProvisioningServices'
+        
+        Write-Host
+        Write-Host "Please choose a location for your deployment from this list (using its Index):"
+        for ($index = 0; $index -lt $locations.Count; $index++)
+        {
+            Write-Host "$($index + 1): $($locations[$index])"
+        }
+        while ($true)
+        {
+            $option = Read-Host -Prompt ">"
+            try
+            {
+                if ([int]$option -ge 1 -and [int]$option -le $locations.Count)
+                {
+                    break
+                }
+            }
+            catch
+            {
+                Write-Host "Invalid index '$($option)' provided."
+            }
+            Write-Host "Choose from the list using an index between 1 and $($locations.Count)."
+        }
+        $location_name = $locations[$option - 1]
+        $location = $location_name.Replace(' ', '').ToLower()
+    }
+    
+    Write-Host
+    Write-Host "Using location $($location)"
+    #endregion
+
+    # create resource group after location has been defined
+    if ($create_resource_group)
+    {
+        $resourceGroup = az group create --name $resource_group --location $location | ConvertFrom-Json
+        Write-Host "Created new resource group $($resource_group) in $($resourceGroup.location)."
+    }
+
+    $device_query = "SELECT * FROM devices WHERE $($deployment_condition)"
+    $function_app_name = "iotedgelogsapp-$($env_hash)"
 
     #region create IoT platform
 
-    # VMs' credentials
+    #region edge virtual machine
+    $skus = az vm list-skus | ConvertFrom-Json -AsHashtable
+    $vm_skus = $skus | Where-Object { $_.resourceType -eq 'virtualMachines' -and $_.locations -contains $location -and $_.restrictions.Count -eq 0 }
+    $vm_sku_names = $vm_skus | Select-Object -ExpandProperty Name -Unique
+    
+    # VM credentials
     $password_length = 12
     $vm_username = "azureuser"
     $vm_password = New-Password -length $password_length
 
-    #region IoT Edge VM parameters
     $edge_vm_name = "iotedgevm-$($env_hash)"
     
     # We will use VM with at least 2 cores and 8 GB of memory as gateway host.
@@ -138,7 +456,7 @@ function New-IoTEnvironment()
     # Pick top
     if ($edge_vm_sizes.Count -ne 0) {
         $edge_vm_size = $edge_vm_sizes[0].Name
-        Write-Host "Using $($edge_vm_size) as VM size for edge gateway host..."
+        # Write-Host "Using $($edge_vm_size) as VM size for edge gateway host..."
     }
     #endregion
 
@@ -149,10 +467,15 @@ function New-IoTEnvironment()
     $edge_subnet_prefix = "10.0.0.0/24"
     #endregion
 
+    #endregion
+
     $platform_parameters = @{
         "location" = @{ "value" = $location }
         "environmentHashId" = @{ "value" = $env_hash }
+        "createIoTHub" = @{ "value" = $create_iot_hub }
         "iotHubName" = @{ "value" = $iot_hub_name }
+        "iotHubResourceGroup" = @{ "value" = $iot_hub_resource_group }
+        "iotHubServicePolicyName" = @{ "value" = $iot_hub_policy_name }
         "edgeVmName" = @{ "value" = $edge_vm_name }
         "edgeVmSize" = @{ "value" = $edge_vm_size }
         "adminUsername" = @{ "value" = $vm_username }
@@ -162,20 +485,27 @@ function New-IoTEnvironment()
         "edgeSubnetName" = @{ "value" = $edge_subnet_name }
         "edgeSubnetAddressRange" = @{ "value" = $edge_subnet_prefix }
         "deviceQuery" = @{ "value" = $device_query }
-        "workspaceId" = @{ "value" = $workspaceId }
-        "workspaceKey" = @{ "value" = $workspaceKey }
+        "createStorageAccount" = @{ "value" = $create_storage }
+        "storageAccountName" = @{ "value" = $storage_account_name }
+        "storageAccountResourceGroup" = @{ "value" = $storage_account_resource_group }
+        "createStorageContainer" = @{ "value" = $create_container }
+        "storageContainerName" = @{ "value" = $storage_container_name }
+        "storageQueueName" = @{ "value" = $storage_queue_name }
+        "createWorkspace" = @{ "value" = $create_workspace }
+        "workspaceName" = @{ "value" = $workspace_name }
+        "workspaceResourceGroup" = @{ "value" = $workspace_resource_group }
         "functionAppName" = @{ "value" = $function_app_name }
         "logsRegex" = @{ "value" = "\b(WRN?|ERR?|CRIT?)\b" }
     }
-    Set-Content -Path ./Templates/azuredeploy.parameters.json -Value (ConvertTo-Json $platform_parameters -Depth 5)
+    Set-Content -Path "$($parent_path)/Templates/azuredeploy.parameters.json" -Value (ConvertTo-Json $platform_parameters -Depth 5)
 
-    Write-Host "Creating resource group deployment"
+    Write-Host "Creating resource group deployment."
     $deployment_output = az deployment group create `
         --resource-group $resource_group `
-        --name 'IoTEdgeLogging' `
+        --name "IoTEdgeLogging-$(Get-Date -Format "yyMMddHHmm")" `
         --mode Incremental `
-        --template-file ./Templates/azuredeploy.json `
-        --parameters ./Templates/azuredeploy.parameters.json | ConvertFrom-Json
+        --template-file "$($parent_path)/Templates/azuredeploy.json" `
+        --parameters "$($parent_path)/Templates/azuredeploy.parameters.json" | ConvertFrom-Json
     
     if (!$deployment_output)
     {
@@ -186,43 +516,49 @@ function New-IoTEnvironment()
     #endregion
 
     #region edge deployment
-    
-    # Create main deployment
-    Write-Host "`r`nCreating main IoT edge device deployment"
+    if ($create_iot_hub)
+    {
+        # Create main deployment
+        Write-Host "`r`nCreating main IoT edge device deployment"
 
-    az iot edge deployment create `
-        -d "main-deployment" `
-        --hub-name $iot_hub_name `
-        --content ./EdgeSolution/deployment.template.json `
-        --target-condition=$deployment_condition
+        az iot edge deployment create `
+            -d "main-deployment" `
+            --hub-name $iot_hub_name `
+            --content "$($parent_path)/EdgeSolution/deployment.template.json" `
+            --target-condition=$deployment_condition
 
-    # Create layered deployment
-    $deployment_name = "sample-logging"
-    $priority = 1
+        # Create layered deployment
+        $deployment_name = "sample-logging"
+        $priority = 1
+        
+        Write-Host "`r`nCreating IoT edge layered deployment $deployment_name-$priority"
 
-    Write-Host "`r`nCreating IoT edge layered deployment $deployment_name-$priority"
-
-    az iot edge deployment create `
-        --layered `
-        -d "$deployment_name-$priority" `
-        --hub-name $iot_hub_name `
-        --content EdgeSolution/layered.deployment.json `
-        --target-condition=$deployment_condition `
-        --priority $priority
+        az iot edge deployment create `
+            --layered `
+            -d "$deployment_name-$priority" `
+            --hub-name $iot_hub_name `
+            --content "$($parent_path)/EdgeSolution/layered.deployment.json" `
+            --target-condition=$deployment_condition `
+            --priority $priority
+    }
     #endregion
 
     #region function app
-    Write-Host "\r\nDeploying code to Function App $function_app_name"
-    $current_path = $MyInvocation.MyCommand.Path
-    $parent_path = Split-Path $current_path -Parent
-    $parent_path = Split-Path $parent_path -Parent
-    az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src "$($parent_path)/deploy.zip"
+    Write-Host
+    Write-Host "Deploying code to Function App $function_app_name"
+    az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src "$($parent_path)/FunctionApp/FunctionApp/deploy.zip"
     #endregion
 
-    Write-Host ""
-    Write-Host "IoT Edge VM Credentials:"
-    Write-Host "Username: $vm_username"
-    Write-Host "Password: $vm_password"
+    if ($create_iot_hub)
+    {
+        Write-Host
+        Write-Host "IoT Edge VM Credentials:"
+        Write-Host "Username: $vm_username"
+        Write-Host "Password: $vm_password"
+    }
+
+    Write-Host
+    Write-Host "Environment unique id: $($env_hash)"
 }
 
 Function New-Password() {
