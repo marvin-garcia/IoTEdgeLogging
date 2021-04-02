@@ -29,7 +29,7 @@ namespace FunctionApp
         [FunctionName("InvokeUploadModuleLogs")]
         public static async Task Run(
             //[HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
-            [TimerTrigger("0 0 */1 * * *")] TimerInfo myTimer,
+            [TimerTrigger("0 */15 * * * *")] TimerInfo myTimer,
             ILogger log)
         {
             try
