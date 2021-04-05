@@ -31,9 +31,9 @@
         }
     },
     "variables": {
-        "storageAccountId": "[resourceId(resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+        "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
         "storageAccountApiVersion": "[providers('Microsoft.Storage', 'StorageAccounts').apiVersions[0]]",
-        "systemTopicId": "[resourceId(resourceGroup().name, 'Microsoft.EventGrid/systemTopics', parameters('eventGridSystemTopicName'))]"
+        "systemTopicId": "[resourceId('Microsoft.EventGrid/systemTopics', parameters('eventGridSystemTopicName'))]"
     },
     "resources": [
         {
