@@ -366,8 +366,7 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachines', parameters('edgeVmName'))]",
-        "[variables('dpsResourceId')]"
+        "[resourceId('Microsoft.Compute/virtualMachines', parameters('edgeVmName'))]"
       ]
     }
   ],
