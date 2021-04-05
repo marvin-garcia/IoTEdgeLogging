@@ -328,30 +328,11 @@
     "appInsightsName": "[parameters('functionAppName')]",
     "workspaceId": "[resourceId(parameters('workspaceResourceGroup'), 'Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
     "workspaceApiVersion": "[providers('microsoft.operationalinsights', 'workspaces').apiVersions[0]]",
-    "iotHubDeploymentName": "[concat('ioTHubDeployment-', parameters('environmentHashId'))]",
-    "eventGridDeploymentName": "[concat('storageEventGridSubscription-', parameters('environmentHashId'))]"
+    "iotHubDeploymentName": "[concat('iothub-', parameters('environmentHashId'))]",
+    "eventGridDeploymentName": "[concat('storagesystemtopic-', parameters('environmentHashId'))]"
   },
   "resources": [
     {
-      "comments": "Empty template to reference when certain resources are not deployed",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2019-10-01",
-      "name": "dummyTemplate",
-      "dependsOn": [],
-      "properties": {
-        "mode": "Incremental",
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "parameters": {},
-          "variables": {},
-          "resources": []
-        },
-        "parameters": {}
-      }
-    },
-    {
-      "condition": "[parameters('createIoTHub')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
       "name": "[variables('iotHubDeploymentName')]",
@@ -364,6 +345,9 @@
           "uri": "[concat(parameters('templateUrl'), '/', parameters('branchName'), '/Templates/iothub-deploy.json')]"
         },
         "parameters": {
+          "createIoTHub": {
+            "value": "[parameters('createIoTHub')]"
+          },
           "iotHubName": {
             "value": "[parameters('iotHubName')]"
           },
@@ -437,7 +421,6 @@
       }
     },
     {
-      "condition": "[parameters('createIoTHub')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
       "name": "[variables('eventGridDeploymentName')]",
@@ -586,7 +569,7 @@
             },
             {
               "name": "StorageConnectionString",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', parameters('storageAccountName'), ';AccountKey=', reference(variables('eventGridDeploymentName')).outputs.storageAccountKey.value, ';')]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', parameters('storageAccountName'), ';AccountKey=', reference(variables('eventGridDeploymentName'), '2020-10-01').outputs.storageAccountKey.value, ';')]"
             },
             {
               "name": "QueueName",
@@ -602,7 +585,7 @@
             },
             {
               "name": "HubConnectionString",
-              "value": "[concat('HostName=', reference(variables('iotHubDeploymentName')).outputs.iotHubHostname.value, ';SharedAccessKeyName=', parameters('iotHubServicePolicyName'), ';SharedAccessKey=', reference(variables('iotHubDeploymentName')).outputs.iotHubServiceKey.value)]"
+              "value": "[concat('HostName=', reference(variables('iotHubDeploymentName'), '2020-10-01').outputs.iotHubHostname.value, ';SharedAccessKeyName=', parameters('iotHubServicePolicyName'), ';SharedAccessKey=', reference(variables('iotHubDeploymentName'), '2020-10-01').outputs.iotHubServiceKey.value)]"
             },
             {
               "name": "LogsContentType",
