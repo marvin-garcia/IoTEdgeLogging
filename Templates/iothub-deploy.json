@@ -2,6 +2,9 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "createIoTHub": {
+      "type": "bool"
+    },
     "iotHubName": {
       "type": "string"
     },
@@ -89,6 +92,7 @@
   "resources": [
     {
       "comments": "Azure IoT Hub",
+      "condition": "[parameters('createIoTHub')]",
       "apiVersion": "2020-07-10-preview",
       "type": "Microsoft.Devices/Iothubs",
       "name": "[parameters('iotHubName')]",
@@ -168,6 +172,7 @@
     },
     {
       "comments": "Azure Device Provisioning service.",
+      "condition": "[parameters('createIoTHub')]",
       "type": "Microsoft.Devices/provisioningServices",
       "name": "[parameters('dpsName')]",
       "apiVersion": "2018-01-22",
@@ -191,6 +196,7 @@
     },
     {
       "comments": "IoT virtual network",
+      "condition": "[parameters('createIoTHub')]",
       "type": "Microsoft.Network/virtualNetworks",
       "apiVersion": "2020-05-01",
       "name": "[parameters('vnetName')]",
@@ -219,6 +225,7 @@
     },
     {
       "comments": "IoT edge VM network security group",
+      "condition": "[parameters('createIoTHub')]",
       "type": "Microsoft.Network/networkSecurityGroups",
       "apiVersion": "2020-05-01",
       "name": "[variables('edgeNetworkSecurityGroupName')]",
@@ -244,6 +251,7 @@
     },
     {
       "comments": "IoT edge VM public IP address",
+      "condition": "[parameters('createIoTHub')]",
       "type": "Microsoft.Network/publicIPAddresses",
       "apiVersion": "2020-05-01",
       "name": "[variables('edgePublicIPAddressName')]",
@@ -260,6 +268,7 @@
     },
     {
       "comments": "IoT edge VM network interface",
+      "condition": "[parameters('createIoTHub')]",
       "type": "Microsoft.Network/networkInterfaces",
       "apiVersion": "2020-05-01",
       "name": "[variables('edgeNetworkInterfaceName')]",
@@ -288,6 +297,7 @@
     },
     {
       "comments": "IoT edge virtual machine",
+      "condition": "[parameters('createIoTHub')]",
       "type": "Microsoft.Compute/virtualMachines",
       "apiVersion": "2019-12-01",
       "name": "[parameters('edgeVmName')]",
@@ -334,6 +344,7 @@
     },
     {
       "comments": "One time script to configure and onboard the IoT edge virtual machine",
+      "condition": "[parameters('createIoTHub')]",
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(parameters('edgeVmName'), '/', 'scriptextensions')]",
       "apiVersion": "2019-03-01",
