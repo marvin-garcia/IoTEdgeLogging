@@ -362,7 +362,7 @@
           ]
         },
         "protectedSettings": {
-          "commandToExecute": "[concat('sudo bash edge-setup.sh --idScope \"', reference(variables('dpsResourceId'), variables('dpsApiVersion')).idScope, '\" --dpsConnString \"', 'HostName=', parameters('dpsName'), '.azure-devices-provisioning.net;SharedAccessKeyName=provisioningserviceowner;SharedAccessKey=', listKeys(variables('dpsResourceId'), providers('Microsoft.Devices', 'ProvisioningServices').apiVersions[0]).value[0].primaryKey, '\"', ' --dpsGlobalEndpoint ', '\"', 'https://', variables('dpsGlobalEndpoint'), '\"')]"
+          "commandToExecute": "[concat('sudo bash edge-setup.sh --idScope \"', if(parameters('createIoTHub'), reference(variables('dpsResourceId'), variables('dpsApiVersion')).idScope, 'idScope'), '\" --dpsConnString \"', 'HostName=', parameters('dpsName'), '.azure-devices-provisioning.net;SharedAccessKeyName=provisioningserviceowner;SharedAccessKey=', if(parameters('createIoTHub'), listKeys(variables('dpsResourceId'), providers('Microsoft.Devices', 'ProvisioningServices').apiVersions[0]).value[0].primaryKey, 'SharedAccessKey'), '\"', ' --dpsGlobalEndpoint ', '\"', 'https://', variables('dpsGlobalEndpoint'), '\"')]"
         }
       },
       "dependsOn": [
