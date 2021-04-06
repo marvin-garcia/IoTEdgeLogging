@@ -29,9 +29,8 @@ The architecture reference shown above is designed to be event driven, which mea
 
 In order to successfully deploy this solution, you will need the following:
 
-- The [.NET Core SDK 3.1](https://www.microsoft.com/net/download)
-- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) version 2.21 or later.
 - [PowerShell](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.1).
+- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) version 2.21 or later.
 - An Azure account with an active subscription. [Create one for free](https://azure.microsoft.com/free/?ref=microsoft.com&utm_source=microsoft.com&utm_medium=docs&utm_campaign=visualstudio).
 - A [Log analytics workspace](https://docs.microsoft.com/en-us/azure/azure-monitor/logs/quick-create-workspace) in your Azure subscription.
 
@@ -39,11 +38,10 @@ In order to successfully deploy this solution, you will need the following:
 
 ### Prerequisite check
 
-Verify your prerequisites to ensure you have the right versions for Azure CLI and dotnet. Open a PowerShell terminal and follow the instructions below:
+Verify your prerequisites to ensure you have the right version for Azure CLI. Open a PowerShell terminal and follow the instructions below:
 
 - Run `az --version` to check that the Azure CLI version is 2.21 or later.
 - Run `az login` to sign in to Azure and verify an active subscription.
-- Run `dotnet --list-sdks` to check that .NET Core SDK version 3.1.x is installed
 
 
 
