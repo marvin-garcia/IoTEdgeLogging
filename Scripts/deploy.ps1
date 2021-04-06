@@ -16,7 +16,7 @@ function New-IoTEnvironment()
     $ask_for_location = $false
     $create_workspace = $false
     $create_storage = $false
-    $create_container = $false
+    $create_event_grid = $false
     $deployment_condition = "tags.logPullEnabled='true'"
 
     #region obtain resource group name
@@ -111,15 +111,19 @@ function New-IoTEnvironment()
 
             # handle IoT hub service policy
             $iot_hub_policies = az iot hub policy list --hub-name $iot_hub_name | ConvertFrom-Json
-            $iot_hub_policy = $iot_hub_policies | Where-Object { $_.rights -contains 'serviceconnect' -and $_.rights -contains 'registryread' }
+            $iot_hub_policy = $iot_hub_policies | Where-Object { $_.rights -like '*serviceconnect*' -and $_.rights -like '*registryread*' }
             if ($null -eq $iot_hub_policy)
             {
                 $iot_hub_policy_name = "iotedgelogs"
-                az iot hub policy create --hub-name $iot_hub_name --name $iot_hub_policy_name --permissions "RegistryRead ServiceConnect"
+                Write-Host
+                Write-Host "Creating IoT hub shared access policy '$($iot_hub_policy_name)' with permissions 'RegistryRead ServiceConnect'"
+                az iot hub policy create --hub-name $iot_hub_name --name $iot_hub_policy_name --permissions RegistryRead ServiceConnect
             }
             else
             {
                 $iot_hub_policy_name = $iot_hub_policy.keyName
+                Write-Host
+                Write-Host "Deployment will use existing IoT hub shared access policy '$($iot_hub_policy_name)'"
             }
         }
         #endregion
@@ -144,8 +148,111 @@ function New-IoTEnvironment()
     }
     else
     {
-        Write-Warning "NOTE: You must update your IoT edge devices' twins with $($deployment_condition) to collect logs from their modules."
+        Write-Host "You must update device twin for your IoT edge devices with $($deployment_condition) to collect logs from their modules." -ForegroundColor Yellow
     }
+    #endregion
+
+    #region storage account
+    $storage_accounts = az storage account list | ConvertFrom-Json
+    if ($storage_accounts.Count -gt 0)
+    {
+        $storage_options = @("Create new storage account", "Use existing storage account")
+        Write-Host
+        Write-Host "Please choose an option from the list for storage account to store logs (using its Index):"
+        for ($index = 0; $index -lt $storage_options.Count; $index++)
+        {
+            #Write-Host
+            Write-Host "$($index + 1): $($storage_options[$index])"
+        }
+        while ($true)
+        {
+            $option = Read-Host -Prompt ">"
+            try
+            {
+                if ([int]$option -ge 1 -and [int]$option -le $storage_options.Count)
+                {
+                    break
+                }
+            }
+            catch
+            {
+                Write-Host "Invalid index '$($option)' provided."
+            }
+            Write-Host "Choose from the list using an index between 1 and $($storage_options.Count)."
+        }
+
+        #region existing storage account
+        if ($option -eq 2)
+        {
+            Write-Host
+            Write-Host "Please choose a storage account to use from this list (using its Index):"
+            for ($index = 0; $index -lt $storage_accounts.Count; $index++)
+            {
+                Write-Host
+                Write-Host "$($index + 1): $($storage_accounts[$index].id)"
+            }
+            while ($true)
+            {
+                $option = Read-Host -Prompt ">"
+                try
+                {
+                    if ([int]$option -ge 1 -and [int]$option -le $storage_accounts.Count)
+                    {
+                        break
+                    }
+                }
+                catch
+                {
+                    Write-Host "Invalid index '$($option)' provided."
+                }
+                Write-Host "Choose from the list using an index between 1 and $($storage_accounts.Count)."
+            }
+
+            $storage_account_id = $storage_accounts[$option - 1].id
+            $storage_account_name = $storage_accounts[$option - 1].name
+            $storage_account_resource_group = $storage_accounts[$option - 1].resourceGroup
+
+            #region system event grid
+            $system_topics = az eventgrid system-topic list | ConvertFrom-Json
+            $system_topic = $system_topics | Where-Object { $_.source -eq $storage_account_id }
+            if (!!$system_topic)
+            {
+                $system_topic_name = $system_topic.name
+                Write-Host
+                Write-Host "Deployment will use existing event grid system topic '$($system_topic_name)'"
+            }
+            else
+            {
+                $create_event_grid = $true
+            }
+            #endregion
+        }
+        #endregion
+        else
+        {
+            $create_storage = $true
+            $create_event_grid = $true
+        }
+    }
+    else
+    {
+        $create_storage = $true
+        $create_event_grid = $true
+    }
+
+    if ($create_storage)
+    {
+        $storage_account_name = "iotedgelogs$($env_hash)"
+        $storage_account_resource_group = $resource_group
+    }
+
+    if ($create_event_grid)
+    {
+        $system_topic_name = "iotedgelogs-$($env_hash)"
+    }
+    
+    $storage_container_name = "modulelogs$($env_hash)"
+    $storage_queue_name = "modulelogs$($env_hash)"
     #endregion
 
     #region log analytics workspace
@@ -225,164 +332,6 @@ function New-IoTEnvironment()
     }
     #endregion
 
-    #region storage account
-    $storage_accounts = az storage account list | ConvertFrom-Json
-    if ($storage_accounts.Count -gt 0)
-    {
-        $storage_options = @("Create new storage account to store logs", "Use existing storage account to store logs")
-        Write-Host
-        Write-Host "Please choose an option from the list for storage account (using its Index):"
-        for ($index = 0; $index -lt $storage_options.Count; $index++)
-        {
-            #Write-Host
-            Write-Host "$($index + 1): $($storage_options[$index])"
-        }
-        while ($true)
-        {
-            $option = Read-Host -Prompt ">"
-            try
-            {
-                if ([int]$option -ge 1 -and [int]$option -le $storage_options.Count)
-                {
-                    break
-                }
-            }
-            catch
-            {
-                Write-Host "Invalid index '$($option)' provided."
-            }
-            Write-Host "Choose from the list using an index between 1 and $($storage_options.Count)."
-        }
-
-        #region existing storage account
-        if ($option -eq 2)
-        {
-            Write-Host
-            Write-Host "Please choose a storage account to use from this list (using its Index):"
-            for ($index = 0; $index -lt $storage_accounts.Count; $index++)
-            {
-                Write-Host
-                Write-Host "$($index + 1): $($storage_accounts[$index].id)"
-            }
-            while ($true)
-            {
-                $option = Read-Host -Prompt ">"
-                try
-                {
-                    if ([int]$option -ge 1 -and [int]$option -le $storage_accounts.Count)
-                    {
-                        break
-                    }
-                }
-                catch
-                {
-                    Write-Host "Invalid index '$($option)' provided."
-                }
-                Write-Host "Choose from the list using an index between 1 and $($storage_accounts.Count)."
-            }
-
-            $storage_account_name = $storage_accounts[$option - 1].name
-            $storage_account_resource_group = $storage_accounts[$option - 1].resourceGroup
-            $storage_key = az storage account keys list --account-name $storage_account_name --query primaryKey -o tsv
-
-            #region storage container
-            $storage_containers = az storage account list  --account-name $storage_account_name --account-key $storage_key | ConvertFrom-Json
-            if ($storage_accounts.Count -gt 0)
-            {
-                $container_options = @("Create new storage container to store logs", "Use existing storage container to store logs")
-                Write-Host
-                Write-Host "Please choose an option from the list for storage container (using its Index):"
-                for ($index = 0; $index -lt $container_options.Count; $index++)
-                {
-                    #Write-Host
-                    Write-Host "$($index + 1): $($container_options[$index])"
-                }
-                while ($true)
-                {
-                    $option = Read-Host -Prompt ">"
-                    try
-                    {
-                        if ([int]$option -ge 1 -and [int]$option -le $container_options.Count)
-                        {
-                            break
-                        }
-                    }
-                    catch
-                    {
-                        Write-Host "Invalid index '$($option)' provided."
-                    }
-                    Write-Host "Choose from the list using an index between 1 and $($container_options.Count)."
-                }
-
-                #region existing container
-                if ($option -eq 2)
-                {
-                    Write-Host
-                    Write-Host "Please choose a storage container to use from this list (using its Index):"
-                    for ($index = 0; $index -lt $storage_containers.Count; $index++)
-                    {
-                        Write-Host
-                        Write-Host "$($index + 1): $($storage_containers[$index].id)"
-                    }
-                    while ($true)
-                    {
-                        $option = Read-Host -Prompt ">"
-                        try
-                        {
-                            if ([int]$option -ge 1 -and [int]$option -le $storage_containers.Count)
-                            {
-                                break
-                            }
-                        }
-                        catch
-                        {
-                            Write-Host "Invalid index '$($option)' provided."
-                        }
-                        Write-Host "Choose from the list using an index between 1 and $($storage_containers.Count)."
-                    }
-
-                    $storage_container_name = $storage_containers[$option - 1].name
-                }
-                #endregion
-                else
-                {
-                    $create_container = $true
-                    $storage_container_name = "iotedgemodulelogs$($env_hash)"
-                }
-            }
-            else
-            {
-                $create_container = $true
-                $storage_container_name = "iotedgemodulelogs$($env_hash)"
-            }
-            #endregion
-        }
-        #endregion
-        else
-        {
-            $create_storage = $true
-            $create_container = $true
-        }
-    }
-    else
-    {
-        $create_storage = $true
-        $create_container = $true
-    }
-
-    if ($create_storage)
-    {
-        $storage_account_name = "iotedgelogs$($env_hash)"
-        $storage_account_resource_group = $resource_group
-    }
-
-    if ($create_container)
-    {
-        $storage_container_name = "modulelogs$($env_hash)"
-    }
-    $storage_queue_name = "modulelogs$($env_hash)"
-    #endregion
-
     #region obtain deployment location
     if ($ask_for_location)
     {
@@ -415,7 +364,14 @@ function New-IoTEnvironment()
     }
     
     Write-Host
-    Write-Host "Using location $($location)"
+    if ($create_iot_hub)
+    {
+        Write-Host "Using location '$($location)'"
+    }
+    else
+    {
+        Write-Host "Using location '$($location)' based on IoT hub location"
+    }
     #endregion
 
     # create resource group after location has been defined
@@ -488,22 +444,25 @@ function New-IoTEnvironment()
         "createStorageAccount" = @{ "value" = $create_storage }
         "storageAccountName" = @{ "value" = $storage_account_name }
         "storageAccountResourceGroup" = @{ "value" = $storage_account_resource_group }
-        "createStorageContainer" = @{ "value" = $create_container }
         "storageContainerName" = @{ "value" = $storage_container_name }
         "storageQueueName" = @{ "value" = $storage_queue_name }
+        "createEventGridSystemTopic" = @{ "value" = $create_event_grid }
+        "eventGridSystemTopicName" = @{ "value" = $system_topic_name }
         "createWorkspace" = @{ "value" = $create_workspace }
         "workspaceName" = @{ "value" = $workspace_name }
         "workspaceResourceGroup" = @{ "value" = $workspace_resource_group }
         "functionAppName" = @{ "value" = $function_app_name }
         "logsRegex" = @{ "value" = "\b(WRN?|ERR?|CRIT?)\b" }
         "logsSince" = @{ "value" = "15m" }
+        "branchName" = @{ "value" = "multiplechoice" }
     }
     Set-Content -Path "$($parent_path)/Templates/azuredeploy.parameters.json" -Value (ConvertTo-Json $platform_parameters -Depth 5)
 
+    Write-Host
     Write-Host "Creating resource group deployment."
     $deployment_output = az deployment group create `
         --resource-group $resource_group `
-        --name "IoTEdgeLogging-$(Get-Date -Format "yyMMddHHmm")" `
+        --name "IoTEdgeLogging-$($env_hash)" `
         --mode Incremental `
         --template-file "$($parent_path)/Templates/azuredeploy.json" `
         --parameters "$($parent_path)/Templates/azuredeploy.parameters.json" | ConvertFrom-Json
@@ -560,6 +519,9 @@ function New-IoTEnvironment()
 
     Write-Host
     Write-Host "Environment unique id: $($env_hash)"
+
+    Write-Host
+    Write-Host "Deployment succeeded" -ForegroundColor Green
 }
 
 Function New-Password() {
