@@ -2,7 +2,7 @@ name: Build and publish .NET Core Function App zip package
 on:
   push:
     branches:
-    - main
+    - master
     paths:
     - 'FunctionApp/**'
   workflow_dispatch:
