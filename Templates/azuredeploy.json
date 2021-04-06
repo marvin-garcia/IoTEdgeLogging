@@ -391,31 +391,31 @@
             "value": "[variables('edgeVmDnsName')]"
           },
           "edgeVmSize": {
-            "value": "string"
+            "value": "[parameters('edgeVmSize')]"
           },
           "adminUsername": {
-            "value": "string"
+            "value": "[parameters('adminUsername')]"
           },
           "adminPassword": {
-            "value": "securestring"
+            "value": "[parameters('adminPassword')]"
           },
           "vnetName": {
-            "value": "string"
+            "value": "[parameters('vnetName')]"
           },
           "vnetAddressPrefix": {
-            "value": "string"
+            "value": "[parameters('vnetAddressPrefix')]"
           },
           "edgeSubnetName": {
-            "value": "string"
+            "value": "[parameters('edgeSubnetName')]"
           },
           "edgeSubnetAddressRange": {
-            "value": "string"
+            "value": "[parameters('edgeSubnetAddressRange')]"
           },
           "templateUrl": {
-            "value": "string"
+            "value": "[parameters('templateUrl')]"
           },
           "branchName": {
-            "value": "string"
+            "value": "[parameters('branchName')]"
           }
         }
       }
