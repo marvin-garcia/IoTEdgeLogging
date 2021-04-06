@@ -4,9 +4,11 @@ function New-IoTEnvironment()
     $env_hash = Get-EnvironmentHash
     
     # verify deploy zip package is present in directory
-    $current_path = Split-Path $MyInvocation.ScriptName -Parent
-    $parent_path = Split-Path $current_path -Parent
-    if (!(Test-Path -Path "$($parent_path)/FunctionApp/FunctionApp/deploy.zip"))
+    # $current_path = Split-Path $PSScriptRoot -Parent
+    # $root_path = Split-Path $current_path -Parent
+    $root_path = Split-Path $PSScriptRoot -Parent
+    write-host "parent" $root_path
+    if (!(Test-Path -Path "$($root_path)/FunctionApp/FunctionApp/deploy.zip"))
     {
         Write-Error "Unable to find Function app zip deploy file. Aborting."
         return
@@ -455,7 +457,7 @@ function New-IoTEnvironment()
         "logsRegex" = @{ "value" = "\b(WRN?|ERR?|CRIT?)\b" }
         "logsSince" = @{ "value" = "15m" }
     }
-    Set-Content -Path "$($parent_path)/Templates/azuredeploy.parameters.json" -Value (ConvertTo-Json $platform_parameters -Depth 5)
+    Set-Content -Path "$($root_path)/Templates/azuredeploy.parameters.json" -Value (ConvertTo-Json $platform_parameters -Depth 5)
 
     Write-Host
     Write-Host "Creating resource group deployment."
@@ -463,8 +465,8 @@ function New-IoTEnvironment()
         --resource-group $resource_group `
         --name "IoTEdgeLogging-$($env_hash)" `
         --mode Incremental `
-        --template-file "$($parent_path)/Templates/azuredeploy.json" `
-        --parameters "$($parent_path)/Templates/azuredeploy.parameters.json" | ConvertFrom-Json
+        --template-file "$($root_path)/Templates/azuredeploy.json" `
+        --parameters "$($root_path)/Templates/azuredeploy.parameters.json" | ConvertFrom-Json
     
     if (!$deployment_output)
     {
@@ -483,7 +485,7 @@ function New-IoTEnvironment()
         az iot edge deployment create `
             -d "main-deployment" `
             --hub-name $iot_hub_name `
-            --content "$($parent_path)/EdgeSolution/deployment.template.json" `
+            --content "$($root_path)/EdgeSolution/deployment.template.json" `
             --target-condition=$deployment_condition
 
         # Create layered deployment
@@ -496,7 +498,7 @@ function New-IoTEnvironment()
             --layered `
             -d "$deployment_name-$priority" `
             --hub-name $iot_hub_name `
-            --content "$($parent_path)/EdgeSolution/layered.deployment.json" `
+            --content "$($root_path)/EdgeSolution/layered.deployment.json" `
             --target-condition=$deployment_condition `
             --priority $priority
     }
@@ -505,7 +507,7 @@ function New-IoTEnvironment()
     #region function app
     Write-Host
     Write-Host "Deploying code to Function App $function_app_name"
-    az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src "$($parent_path)/FunctionApp/FunctionApp/deploy.zip"
+    az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src "$($root_path)/FunctionApp/FunctionApp/deploy.zip"
     #endregion
 
     if ($create_iot_hub)
