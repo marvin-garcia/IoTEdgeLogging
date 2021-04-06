@@ -336,11 +336,6 @@
           ]
         }
       }
-      // "plan": {
-      //   "name": "ubuntu_1604_edgeruntimeonly",
-      //   "publisher": "microsoft_iot_edge",
-      //   "product": "iot_edge_vm_ubuntu"
-      // }
     },
     {
       "comments": "One time script to configure and onboard the IoT edge virtual machine",
