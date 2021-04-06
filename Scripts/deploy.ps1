@@ -454,7 +454,6 @@ function New-IoTEnvironment()
         "functionAppName" = @{ "value" = $function_app_name }
         "logsRegex" = @{ "value" = "\b(WRN?|ERR?|CRIT?)\b" }
         "logsSince" = @{ "value" = "15m" }
-        "branchName" = @{ "value" = "multiplechoice" }
     }
     Set-Content -Path "$($parent_path)/Templates/azuredeploy.parameters.json" -Value (ConvertTo-Json $platform_parameters -Depth 5)
 
