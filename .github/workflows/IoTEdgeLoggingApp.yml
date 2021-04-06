@@ -5,6 +5,7 @@ on:
     - master
     paths:
     - 'FunctionApp/**'
+    - '!FunctionApp/FunctionApp/deploy.zip'
   workflow_dispatch:
     inputs:
       comment:
