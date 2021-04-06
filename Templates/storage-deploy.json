@@ -153,7 +153,7 @@
     ],
     "outputs": {
         "storageAccountKey": {
-            "type": "string",
+            "type": "securestring",
             "value": "[listkeys(variables('storageAccountId'), variables('storageAccountApiVersion')).keys[0].value]"
         }
     }

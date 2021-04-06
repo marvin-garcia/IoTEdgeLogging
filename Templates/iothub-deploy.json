@@ -376,11 +376,11 @@
       "value": "[reference(variables('iotHubId'), variables('iotHubApiVersion')).hostName]"
     },
     "iotHubOwnerKey": {
-      "type": "string",
+      "type": "securestring",
       "value": "[listKeys(variables('iotHubOwnerKeysId'), variables('iotHubApiVersion')).primaryKey]"
     },
     "iotHubServiceKey": {
-      "type": "string",
+      "type": "securestring",
       "value": "[listKeys(variables('iotHubServiceKeysId'), variables('iotHubApiVersion')).primaryKey]"
     }
   }
