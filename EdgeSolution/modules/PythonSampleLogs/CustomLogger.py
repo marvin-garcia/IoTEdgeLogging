@@ -1,4 +1,5 @@
 import os
+import sys
 import pytz
 import logging
 import datetime
@@ -69,7 +70,7 @@ def CustomLogger(
     logger.setLevel(getattr(logging, level))
 
     # create console handler
-    console = logging.StreamHandler()
+    console = logging.StreamHandler(sys.stdout)
     console.setLevel(level)
 
     # configure formatter
