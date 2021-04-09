@@ -29,12 +29,17 @@ function New-IoTEnvironment()
     Write-Host "####                                      ####"
     Write-Host "##############################################"
     Write-Host "##############################################"
+
+    Start-Sleep -Milliseconds 1500
     
     Write-Host
     Write-Host "This deployment script will help you deploy the IoT Edge Logging solution in your Azure subscription."
     Write-Host "It can be deployed as a sandbox environment, with a new IoT hub and a test IoT Edge device generating sample logs, or it can connect to you existing IoT Hub and Log analytics workspace."
-    Write-Host "Follow the instruction below to determine how to deploy your solution."
     Write-Host
+    Write-Host "Follow the instructions below to determine how to deploy your solution."
+    Write-Host
+
+    Start-Sleep -Milliseconds 1500
 
     #region obtain resource group name
     $create_resource_group = $false
@@ -166,7 +171,7 @@ function New-IoTEnvironment()
     }
     else
     {
-        Write-Host -ForegroundColor Yellow "You must update device twin for your IoT edge devices with $($deployment_condition) to collect logs from their modules."
+        Write-Host -ForegroundColor Yellow "IMPORTANT: You must update device twin for your IoT edge devices with $($deployment_condition) to collect logs from their modules."
     }
     #endregion
 
@@ -280,7 +285,7 @@ function New-IoTEnvironment()
     {
         $workspace_options = @("Create new log analytics workspace", "Use existing log analytics workspace")
         Write-Host
-        Write-Host "Choose an option from the list for Log Analytics workspace to connect to (using its Index):"
+        Write-Host "Choose an option from the list for the Log Analytics workspace to connect to (using its Index):"
         for ($index = 0; $index -lt $workspace_options.Count; $index++)
         {
             #Write-Host
@@ -563,6 +568,7 @@ function New-IoTEnvironment()
     Write-Host -ForegroundColor Green "####                                      ####"
     Write-Host -ForegroundColor Green "##############################################"
     Write-Host -ForegroundColor Green "##############################################"
+    Write-Host
 }
 
 Function New-Password() {
