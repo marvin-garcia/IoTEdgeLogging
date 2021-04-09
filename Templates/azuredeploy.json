@@ -6,7 +6,7 @@
       "type": "string",
       "defaultValue": "[resourceGroup().location]",
       "metadata": {
-        "description": "Specifies the location for all resources."
+        "description": "Specifies the deployment location."
       }
     },
     "environmentHashId": {
@@ -20,6 +20,13 @@
       "defaultValue": true,
       "metadata": {
         "description": "Whether to create a new IoT hub."
+      }
+    },
+    "iotHubLocation": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "IoT Hub location."
       }
     },
     "iotHubName": {
@@ -174,6 +181,13 @@
         "description": "Whether to create new storage account to store logs."
       }
     },
+    "storageAccountLocation": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Storage account location."
+      }
+    },
     "storageAccountName": {
       "type": "string",
       "metadata": {
@@ -237,6 +251,13 @@
       "defaultValue": true,
       "metadata": {
         "description": "Whether to create a new Log Analytics workspace."
+      }
+    },
+    "workspaceLocation": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Log analytics workspace location."
       }
     },
     "workspaceName": {
@@ -348,6 +369,9 @@
           "createIoTHub": {
             "value": "[parameters('createIoTHub')]"
           },
+          "iotHubLocation": {
+            "value": "[parameters('iotHubLocation')]"
+          },
           "iotHubName": {
             "value": "[parameters('iotHubName')]"
           },
@@ -436,6 +460,9 @@
           "createStorageAccount": {
             "value": "[parameters('createStorageAccount')]"
           },
+          "storageAccountLocation": {
+            "value": "[parameters('storageAccountLocation')]"
+          },
           "storageAccountName": {
             "value": "[parameters('storageAccountName')]"
           },
@@ -468,7 +495,7 @@
       "condition": "[parameters('createWorkspace')]",
       "type": "microsoft.operationalinsights/workspaces",
       "name": "[parameters('workspaceName')]",
-      "location": "[parameters('location')]",
+      "location": "[parameters('workspaceLocation')]",
       "properties": {
         "sku": {
           "name": "[parameters('workspaceSku')]"

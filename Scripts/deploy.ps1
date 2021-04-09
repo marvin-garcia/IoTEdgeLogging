@@ -21,6 +21,21 @@ function New-IoTEnvironment()
     $create_event_grid = $false
     $deployment_condition = "tags.logPullEnabled='true'"
 
+    Write-Host
+    Write-Host "##############################################"
+    Write-Host "##############################################"
+    Write-Host "####                                      ####"
+    Write-Host "#### IoT Edge Logging deployment solution ####"
+    Write-Host "####                                      ####"
+    Write-Host "##############################################"
+    Write-Host "##############################################"
+    
+    Write-Host
+    Write-Host "This deployment script will help you deploy the IoT Edge Logging solution in your Azure subscription."
+    Write-Host "It can be deployed as a sandbox environment, with a new IoT hub and a test IoT Edge device generating sample logs, or it can connect to you existing IoT Hub and Log analytics workspace."
+    Write-Host "Follow the instruction below to determine how to deploy your solution."
+    Write-Host
+
     #region obtain resource group name
     $create_resource_group = $false
     $resource_group = $null
@@ -34,7 +49,7 @@ function New-IoTEnvironment()
         else
         {
             Write-Host
-            Write-Host "Please provide a name for the resource group."
+            Write-Host "Provide a name for the resource group to host all the new resources that will be deployed as part of your solution."
             $first = $false
         }
         $resource_group = Read-Host -Prompt ">"
@@ -57,7 +72,7 @@ function New-IoTEnvironment()
     {
         $iot_hub_options = @("Create new IoT hub", "Use existing IoT hub")
         Write-Host
-        Write-Host "Please choose an option from the list for IoT hub (using its Index):"
+        Write-Host "Choose an option from the list for the IoT hub (using its Index):"
         for ($index = 0; $index -lt $iot_hub_options.Count; $index++)
         {
             # Write-Host
@@ -84,7 +99,7 @@ function New-IoTEnvironment()
         if ($option -eq 2)
         {
             Write-Host
-            Write-Host "Please choose an IoT hub to use from this list (using its Index):"
+            Write-Host "Choose an IoT hub to use from this list (using its Index):"
             for ($index = 0; $index -lt $iot_hubs.Count; $index++)
             {
                 Write-Host
@@ -110,6 +125,7 @@ function New-IoTEnvironment()
             $iot_hub_name = $iot_hubs[$option - 1].name
             $iot_hub_resource_group = $iot_hubs[$option - 1].resourcegroup
             $location = $iot_hubs[$option - 1].location
+            $iot_hub_location = $location
 
             # handle IoT hub service policy
             $iot_hub_policies = az iot hub policy list --hub-name $iot_hub_name | ConvertFrom-Json
@@ -150,7 +166,7 @@ function New-IoTEnvironment()
     }
     else
     {
-        Write-Host "You must update device twin for your IoT edge devices with $($deployment_condition) to collect logs from their modules." -ForegroundColor Yellow
+        Write-Host -ForegroundColor Yellow "You must update device twin for your IoT edge devices with $($deployment_condition) to collect logs from their modules."
     }
     #endregion
 
@@ -160,7 +176,7 @@ function New-IoTEnvironment()
     {
         $storage_options = @("Create new storage account", "Use existing storage account")
         Write-Host
-        Write-Host "Please choose an option from the list for storage account to store logs (using its Index):"
+        Write-Host "Choose an option from the list for the storage account to store log files (using its Index):"
         for ($index = 0; $index -lt $storage_options.Count; $index++)
         {
             #Write-Host
@@ -187,7 +203,7 @@ function New-IoTEnvironment()
         if ($option -eq 2)
         {
             Write-Host
-            Write-Host "Please choose a storage account to use from this list (using its Index):"
+            Write-Host "Choose a storage account to use from this list (using its Index):"
             for ($index = 0; $index -lt $storage_accounts.Count; $index++)
             {
                 Write-Host
@@ -213,6 +229,7 @@ function New-IoTEnvironment()
             $storage_account_id = $storage_accounts[$option - 1].id
             $storage_account_name = $storage_accounts[$option - 1].name
             $storage_account_resource_group = $storage_accounts[$option - 1].resourceGroup
+            $storage_account_location = $storage_accounts[$option - 1].location
 
             #region system event grid
             $system_topics = az eventgrid system-topic list | ConvertFrom-Json
@@ -263,7 +280,7 @@ function New-IoTEnvironment()
     {
         $workspace_options = @("Create new log analytics workspace", "Use existing log analytics workspace")
         Write-Host
-        Write-Host "Please choose an option from the list for Log Analytics (using its Index):"
+        Write-Host "Choose an option from the list for Log Analytics workspace to connect to (using its Index):"
         for ($index = 0; $index -lt $workspace_options.Count; $index++)
         {
             #Write-Host
@@ -290,7 +307,7 @@ function New-IoTEnvironment()
         if ($option -eq 2)
         {
             Write-Host
-            Write-Host "Please choose an log analytics workspace to use from this list (using its Index):"
+            Write-Host "Choose a log analytics workspace to use from this list (using its Index):"
             for ($index = 0; $index -lt $workspaces.Count; $index++)
             {
                 Write-Host
@@ -315,6 +332,7 @@ function New-IoTEnvironment()
 
             $workspace_name = $workspaces[$option - 1].name
             $workspace_resource_group = $workspaces[$option - 1].resourceGroup
+            $workspace_location = $workspaces[$option - 1].location
         }
         #endregion
         else
@@ -340,7 +358,7 @@ function New-IoTEnvironment()
         $locations = Get-ResourceGroupLocations -provider 'Microsoft.Devices' -typeName 'ProvisioningServices'
         
         Write-Host
-        Write-Host "Please choose a location for your deployment from this list (using its Index):"
+        Write-Host "Choose a location for your deployment from this list (using its Index):"
         for ($index = 0; $index -lt $locations.Count; $index++)
         {
             Write-Host "$($index + 1): $($locations[$index])"
@@ -372,7 +390,20 @@ function New-IoTEnvironment()
     }
     else
     {
-        Write-Host "Using location '$($location)' based on IoT hub location"
+        Write-Host "Using location '$($location)' based on your IoT hub location"
+    }
+
+    if ($create_iot_hub)
+    {
+        $iot_hub_location = $location
+    }
+    if ($create_storage)
+    {
+        $storage_account_location = $location
+    }
+    if ($create_workspace)
+    {
+        $workspace_location = $location
     }
     #endregion
 
@@ -431,6 +462,7 @@ function New-IoTEnvironment()
         "location" = @{ "value" = $location }
         "environmentHashId" = @{ "value" = $env_hash }
         "createIoTHub" = @{ "value" = $create_iot_hub }
+        "iotHubLocation" = @{ "value" = $iot_hub_location }
         "iotHubName" = @{ "value" = $iot_hub_name }
         "iotHubResourceGroup" = @{ "value" = $iot_hub_resource_group }
         "iotHubServicePolicyName" = @{ "value" = $iot_hub_policy_name }
@@ -444,6 +476,7 @@ function New-IoTEnvironment()
         "edgeSubnetAddressRange" = @{ "value" = $edge_subnet_prefix }
         "deviceQuery" = @{ "value" = $device_query }
         "createStorageAccount" = @{ "value" = $create_storage }
+        "storageAccountLocation" = @{ "value" = $storage_account_location }
         "storageAccountName" = @{ "value" = $storage_account_name }
         "storageAccountResourceGroup" = @{ "value" = $storage_account_resource_group }
         "storageContainerName" = @{ "value" = $storage_container_name }
@@ -451,6 +484,7 @@ function New-IoTEnvironment()
         "createEventGridSystemTopic" = @{ "value" = $create_event_grid }
         "eventGridSystemTopicName" = @{ "value" = $system_topic_name }
         "createWorkspace" = @{ "value" = $create_workspace }
+        "workspaceLocation" = @{ "value" = $workspace_location }
         "workspaceName" = @{ "value" = $workspace_name }
         "workspaceResourceGroup" = @{ "value" = $workspace_resource_group }
         "functionAppName" = @{ "value" = $function_app_name }
@@ -522,7 +556,13 @@ function New-IoTEnvironment()
     Write-Host "Environment unique id: $($env_hash)"
 
     Write-Host
-    Write-Host "Deployment succeeded" -ForegroundColor Green
+    Write-Host -ForegroundColor Green "##############################################"
+    Write-Host -ForegroundColor Green "##############################################"
+    Write-Host -ForegroundColor Green "####                                      ####"
+    Write-Host -ForegroundColor Green "####        Deployment Succeeded          ####"
+    Write-Host -ForegroundColor Green "####                                      ####"
+    Write-Host -ForegroundColor Green "##############################################"
+    Write-Host -ForegroundColor Green "##############################################"
 }
 
 Function New-Password() {

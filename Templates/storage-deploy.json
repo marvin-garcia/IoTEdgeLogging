@@ -5,6 +5,9 @@
         "createStorageAccount": {
             "type": "bool"
         },
+        "storageAccountLocation": {
+            "type": "string"
+        },
         "storageAccountName": {
             "type": "string"
         },
@@ -59,7 +62,7 @@
             "type": "Microsoft.Storage/storageAccounts",
             "name": "[parameters('storageAccountName')]",
             "apiVersion": "2019-04-01",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('storageAccountLocation')]",
             "kind": "StorageV2",
             "sku": {
                 "name": "[parameters('storageAccountSku')]"
@@ -112,7 +115,7 @@
             "type": "Microsoft.EventGrid/systemTopics",
             "apiVersion": "2020-10-15-preview",
             "name": "[parameters('eventGridSystemTopicName')]",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('storageAccountLocation')]",
             "dependsOn": [
                 "[if(parameters('createStorageAccount'), variables('storageAccountId'), 'dummyTemplate')]"
             ],
