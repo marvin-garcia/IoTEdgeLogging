@@ -20,6 +20,8 @@ function New-IoTEnvironment()
     $create_storage = $false
     $create_event_grid = $false
     $deployment_condition = "tags.logPullEnabled='true'"
+    $function_app_name = "iotedgelogsapp-$($env_hash)"
+    $logs_regex = "\b(WRN?|ERR?|CRIT?)\b"
 
     Write-Host
     Write-Host "##############################################"
@@ -31,15 +33,13 @@ function New-IoTEnvironment()
     Write-Host "##############################################"
 
     Start-Sleep -Milliseconds 1500
-    
+
     Write-Host
     Write-Host "This deployment script will help you deploy the IoT Edge Logging solution in your Azure subscription."
-    Write-Host "It can be deployed as a sandbox environment, with a new IoT hub and a test IoT Edge device generating sample logs, or it can connect to you existing IoT Hub and Log analytics workspace."
+    Write-Host "It can be deployed as a sandbox environment, with a new IoT hub and a test IoT Edge device generating sample logs, or it can connect to your existing IoT Hub and Log analytics workspace."
     Write-Host
-    Write-Host "Follow the instructions below to determine how to deploy your solution."
-    Write-Host
-
-    Start-Sleep -Milliseconds 1500
+    Write-Host "Press Enter to continue."
+    Read-Host
 
     #region obtain resource group name
     $create_resource_group = $false
@@ -171,7 +171,20 @@ function New-IoTEnvironment()
     }
     else
     {
+        $logs_regex = ".*"
+        Write-Host -ForegroundColor Yellow "IMPORTANT: The solution will be configured to capture all logs from the edge modules. To change this behavior, you can go to the Configuration section of the Function App '$($function_app_name)' and update the regular expression for the app setting 'LogsRegex'."
+        Write-Host
+
+        Start-Sleep -Milliseconds 1500
+
         Write-Host -ForegroundColor Yellow "IMPORTANT: You must update device twin for your IoT edge devices with $($deployment_condition) to collect logs from their modules."
+        Write-Host
+        
+        Start-Sleep -Milliseconds 1500
+        
+        Write-Host "Press Enter to continue."
+        Read-Host
+        Write-Host
     }
     #endregion
 
@@ -420,7 +433,6 @@ function New-IoTEnvironment()
     }
 
     $device_query = "SELECT * FROM devices WHERE $($deployment_condition)"
-    $function_app_name = "iotedgelogsapp-$($env_hash)"
 
     #region create IoT platform
 
@@ -493,7 +505,7 @@ function New-IoTEnvironment()
         "workspaceName" = @{ "value" = $workspace_name }
         "workspaceResourceGroup" = @{ "value" = $workspace_resource_group }
         "functionAppName" = @{ "value" = $function_app_name }
-        "logsRegex" = @{ "value" = "\b(WRN?|ERR?|CRIT?)\b" }
+        "logsRegex" = @{ "value" = $logs_regex }
         "logsSince" = @{ "value" = "15m" }
     }
     Set-Content -Path "$($root_path)/Templates/azuredeploy.parameters.json" -Value (ConvertTo-Json $platform_parameters -Depth 5)
