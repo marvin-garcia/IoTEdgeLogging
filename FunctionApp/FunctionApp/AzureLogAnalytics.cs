@@ -12,13 +12,15 @@ namespace FunctionApp
         private string _workspaceKey { get; set; }
         public string ApiVersion { get; set; }
         public string LogType { get; set; }
+        public string ResourceId { get; set; }
 
-        public AzureLogAnalytics(string workspaceId, string workspaceKey, string logType, string apiVersion = "2016-04-01")
+        public AzureLogAnalytics(string workspaceId, string workspaceKey, string logType, string apiVersion = "2016-04-01", string resourceId = null)
         {
             this.WorkspaceId = workspaceId;
             this._workspaceKey = workspaceKey;
             this.LogType = logType;
             this.ApiVersion = apiVersion;
+            this.ResourceId = resourceId;
         }
 
         public void Post(string json)
@@ -33,6 +35,10 @@ namespace FunctionApp
             request.Headers["Log-Type"] = LogType;
             request.Headers["x-ms-date"] = dateString;
             request.Headers["Authorization"] = signature;
+
+            if (!string.IsNullOrEmpty(this.ResourceId))
+                request.Headers["x-ms-AzureResourceId"] = this.ResourceId;
+
             byte[] content = Encoding.UTF8.GetBytes(json);
             using (Stream requestStreamAsync = request.GetRequestStream())
             {

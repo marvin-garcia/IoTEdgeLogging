@@ -68,7 +68,7 @@ namespace FunctionApp
                 IoTEdgeLog[] iotEdgeLogs = JsonConvert.DeserializeObject<IoTEdgeLog[]>(reader.ReadToEnd());
 
                 // Convert to logs their final log analytics format
-                LogAnalyticsLog[] logAnalyticsLogs = iotEdgeLogs.Select(x => new LogAnalyticsLog(x)).Select(x => { x.ResourceId = _hubResourceId; return x; }).ToArray();
+                LogAnalyticsLog[] logAnalyticsLogs = iotEdgeLogs.Select(x => new LogAnalyticsLog(x)).ToArray();
 
                 if (logAnalyticsLogs.Length == 0)
                     return;
@@ -78,7 +78,8 @@ namespace FunctionApp
                     workspaceId: _workspaceId,
                     workspaceKey: _workspaceKey,
                     logType: _logType,
-                    apiVersion: _workspaceApiVersion);
+                    apiVersion: _workspaceApiVersion,
+                    resourceId: _hubResourceId);
 
                 // because log analytics supports messages up to 30MB,
                 // we have to break logs in chunks to fit in on each request

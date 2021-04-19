@@ -27,8 +27,6 @@ namespace FunctionApp.Models
     {
         [JsonProperty("iotHub")]
         public string IoTHub { get; set; }
-        [JsonProperty("resourceId")]
-        public string ResourceId { get; set; }
         [JsonProperty("deviceId")]
         public string DeviceId { get; set; }
         [JsonProperty("moduleId")]
