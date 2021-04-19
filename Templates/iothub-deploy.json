@@ -374,7 +374,7 @@
       "type": "string",
       "value": "[reference(variables('iotHubId'), variables('iotHubApiVersion')).hostName]"
     },
-    "iotHubResuorceId": {
+    "iotHubResourceId": {
       "type": "string",
       "value": "[variables('iotHubId')]"
     },

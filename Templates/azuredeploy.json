@@ -617,7 +617,7 @@
             },
             {
               "name": "HubResourceId",
-              "value": "[reference(variables('iotHubDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.iotHubResuorceId.value]"
+              "value": "[reference(variables('iotHubDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.iotHubResourceId.value]"
             },
             {
               "name": "LogsContentType",
