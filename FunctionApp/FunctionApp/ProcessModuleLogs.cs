@@ -15,6 +15,7 @@ namespace FunctionApp
 {
     public static class ProcessModuleLogs
     {
+        private static string _hubResourceId = Environment.GetEnvironmentVariable("HubResourceId");
         private static string _connectionString = Environment.GetEnvironmentVariable("StorageConnectionString");
         private static string _containerName = Environment.GetEnvironmentVariable("ContainerName");
         private static string _workspaceId = Environment.GetEnvironmentVariable("WorkspaceId");
@@ -67,7 +68,7 @@ namespace FunctionApp
                 IoTEdgeLog[] iotEdgeLogs = JsonConvert.DeserializeObject<IoTEdgeLog[]>(reader.ReadToEnd());
 
                 // Convert to logs their final log analytics format
-                LogAnalyticsLog[] logAnalyticsLogs = iotEdgeLogs.Select(x => new LogAnalyticsLog(x)).ToArray();
+                LogAnalyticsLog[] logAnalyticsLogs = iotEdgeLogs.Select(x => new LogAnalyticsLog(x)).Select(x => { x.ResourceId = _hubResourceId; return x; }).ToArray();
 
                 if (logAnalyticsLogs.Length == 0)
                     return;

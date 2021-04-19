@@ -350,12 +350,13 @@
     "workspaceId": "[resourceId(parameters('workspaceResourceGroup'), 'Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
     "workspaceApiVersion": "[providers('microsoft.operationalinsights', 'workspaces').apiVersions[0]]",
     "iotHubDeploymentName": "[concat('iothub-', parameters('environmentHashId'))]",
-    "eventGridDeploymentName": "[concat('storagesystemtopic-', parameters('environmentHashId'))]"
+    "eventGridDeploymentName": "[concat('storagesystemtopic-', parameters('environmentHashId'))]",
+    "linkedDeploymentApiVersion": "2020-10-01"
   },
   "resources": [
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2020-10-01",
+      "apiVersion": "[variables('linkedDeploymentApiVersion')]",
       "name": "[variables('iotHubDeploymentName')]",
       "resourceGroup": "[parameters('iotHubResourceGroup')]",
       "dependsOn": [],
@@ -446,7 +447,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2020-10-01",
+      "apiVersion": "[variables('linkedDeploymentApiVersion')]",
       "name": "[variables('eventGridDeploymentName')]",
       "resourceGroup": "[parameters('storageAccountResourceGroup')]",
       "dependsOn": [],
@@ -491,7 +492,7 @@
       }
     },
     {
-      "apiVersion": "2020-10-01",
+      "apiVersion": "[variables('linkedDeploymentApiVersion')]",
       "condition": "[parameters('createWorkspace')]",
       "type": "microsoft.operationalinsights/workspaces",
       "name": "[parameters('workspaceName')]",
@@ -596,7 +597,7 @@
             },
             {
               "name": "StorageConnectionString",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', parameters('storageAccountName'), ';AccountKey=', reference(variables('eventGridDeploymentName'), '2020-10-01').outputs.storageAccountKey.value, ';')]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', parameters('storageAccountName'), ';AccountKey=', reference(variables('eventGridDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.storageAccountKey.value, ';')]"
             },
             {
               "name": "QueueName",
@@ -612,8 +613,12 @@
             },
             {
               "name": "HubConnectionString",
-              "value": "[concat('HostName=', reference(variables('iotHubDeploymentName'), '2020-10-01').outputs.iotHubHostname.value, ';SharedAccessKeyName=', parameters('iotHubServicePolicyName'), ';SharedAccessKey=', reference(variables('iotHubDeploymentName'), '2020-10-01').outputs.iotHubServiceKey.value)]"
+              "value": "[concat('HostName=', reference(variables('iotHubDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.iotHubHostname.value, ';SharedAccessKeyName=', parameters('iotHubServicePolicyName'), ';SharedAccessKey=', reference(variables('iotHubDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.iotHubServiceKey.value)]"
             },
+            {
+              "name": "HubResourceId",
+              "value": "[reference(variables('iotHubDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.iotHubResuorceId.value]"
+            }
             {
               "name": "LogsContentType",
               "value": "json"
