@@ -665,5 +665,18 @@
       "resources": []
     }
   ],
-  "outputs": {}
+  "outputs": {
+    "iotHubResourceId": {
+      "type": "string",
+      "value": "[reference(variables('iotHubDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.iotHubResourceId.value]"
+    },
+    "workspaceId": {
+      "type": "string",
+      "value": "[reference(variables('workspaceId'), variables('workspaceApiVersion')).customerId]"
+    },
+    "workspaceSharedKey": {
+      "type": "string",
+      "value": "[listKeys(variables('workspaceId'), variables('workspaceApiVersion')).primarySharedKey]"
+    }
+  }
 }

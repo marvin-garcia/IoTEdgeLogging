@@ -177,7 +177,7 @@ function New-IoTEnvironment()
 
         Start-Sleep -Milliseconds 1500
 
-        Write-Host -ForegroundColor Yellow "IMPORTANT: You must update device twin for your IoT edge devices with $($deployment_condition) to collect logs from their modules."
+        Write-Host -ForegroundColor Yellow "IMPORTANT: You must update device twin for your IoT edge devices with `"$($deployment_condition)`" to collect logs from their modules."
         Write-Host
         
         Start-Sleep -Milliseconds 1500
@@ -527,7 +527,7 @@ function New-IoTEnvironment()
     $deployment_output | Out-String
     #endregion
 
-    #region edge deployment
+    #region edge deployments
     if ($create_iot_hub)
     {
         # Create main deployment
@@ -536,20 +536,46 @@ function New-IoTEnvironment()
         az iot edge deployment create `
             -d "main-deployment" `
             --hub-name $iot_hub_name `
-            --content "$($root_path)/EdgeSolution/deployment.template.json" `
+            --content "$($root_path)/EdgeSolution/deployment.manifest.json" `
             --target-condition=$deployment_condition
 
-        # Create layered deployment
-        $deployment_name = "sample-logging"
+        # Create monitoring deployment
+        $upload_target = "AzureMonitor" # Can be AzureMonitor or IotMessage
+
+        # update IoT edge deployment with log analytics workspace details
+        Remove-Item -Path "$($root_path)/EdgeSolution/monitoring.deployment.json"
+
+        (Get-Content -Path "$($root_path)/EdgeSolution/monitoring.template.json" -Raw) | ForEach-Object {
+            $_ -replace '__WORKSPACE_ID__', $deployment_output.properties.outputs.workspaceId.value `
+            -replace '__SHARED_KEY__', $deployment_output.properties.outputs.workspaceSharedKey.value `
+            -replace '__HUB_RESOURCE_ID__', $deployment_output.properties.outputs.iotHubResourceId.value `
+            -replace '__UPLOAD_TARGET__', $upload_target
+        } | Set-Content -Path "$($root_path)/EdgeSolution/monitoring.deployment.json"
+
+        $deployment_name = "edge-monitoring"
         $priority = 1
         
-        Write-Host "`r`nCreating IoT edge layered deployment $deployment_name-$priority"
+        Write-Host "`r`nCreating IoT edge monitoring layered deployment $deployment_name"
 
         az iot edge deployment create `
             --layered `
-            -d "$deployment_name-$priority" `
+            -d "$deployment_name" `
             --hub-name $iot_hub_name `
-            --content "$($root_path)/EdgeSolution/layered.deployment.json" `
+            --content "$($root_path)/EdgeSolution/monitoring.deployment.json" `
+            --target-condition=$deployment_condition `
+            --priority $priority
+
+        # Create logging deployment
+        $deployment_name = "sample-logging"
+        $priority = 2
+        
+        Write-Host "`r`nCreating IoT edge logging layered deployment $deployment_name"
+
+        az iot edge deployment create `
+            --layered `
+            -d "$deployment_name" `
+            --hub-name $iot_hub_name `
+            --content "$($root_path)/EdgeSolution/logging.deployment.json" `
             --target-condition=$deployment_condition `
             --priority $priority
     }
@@ -561,16 +587,21 @@ function New-IoTEnvironment()
     az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src "$($root_path)/FunctionApp/FunctionApp/deploy.zip"
     #endregion
 
+    Write-Host
+    Write-Host -ForegroundColor Green "Environment unique id: $($env_hash)"
+
     if ($create_iot_hub)
     {
         Write-Host
-        Write-Host "IoT Edge VM Credentials:"
-        Write-Host "Username: $vm_username"
-        Write-Host "Password: $vm_password"
+        Write-Host -ForegroundColor Green "IoT Edge VM Credentials:"
+        Write-Host -ForegroundColor Green "Username: $vm_username"
+        Write-Host -ForegroundColor Green "Password: $vm_password"
     }
-
-    Write-Host
-    Write-Host "Environment unique id: $($env_hash)"
+    else
+    {
+        Write-Host
+        Write-Host -ForegroundColor Green "REMINDER: Update device twin for your IoT edge devices with `"$($deployment_condition)`" to collect logs from their modules."
+    }
 
     Write-Host
     Write-Host -ForegroundColor Green "##############################################"
