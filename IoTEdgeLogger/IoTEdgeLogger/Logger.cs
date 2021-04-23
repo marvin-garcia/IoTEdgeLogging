@@ -40,9 +40,13 @@ namespace IoTEdgeLogger
         /// </summary>
         public static void SetLogLevel(string level)
         {
-            Preconditions.CheckNonWhiteSpace(level, nameof(level));
+            if (!string.IsNullOrWhiteSpace(level))
+            {
+                throw new ArgumentException($"{nameof(level)} is null or whitespace.");
+            }
+
             level = SanitizeLogLevel(level);
-            logLevel = LogLevelDictionary.GetOrElse(level.ToLower(), LogEventLevel.Information);
+            logLevel = LogLevelDictionary.TryGetValue(level.ToLower(), out LogEventLevel value) ? value : LogEventLevel.Information;
         }
 
         public static LogEventLevel GetLogLevel() => logLevel;
