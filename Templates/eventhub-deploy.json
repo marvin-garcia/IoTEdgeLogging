@@ -1,0 +1,197 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "createMetricsEventHubNamespace": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Whether to create event hub to capture monitoring metrics."
+            }
+        },
+        "eventHubLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "Event hubs namespace location."
+            }
+        },
+        "eventHubNamespaceName": {
+            "type": "string",
+            "metadata": {
+                "description": "Event hubs namespace name."
+            }
+        },
+        "eventHubsName": {
+            "type": "string",
+            "metadata": {
+                "description": "Event hubs name."
+            }
+        },
+        "eventHubSku": {
+            "type": "string",
+            "defaultValue": "Standard",
+            "allowedValues": [
+                "Standard",
+                "Basic"
+            ],
+            "metadata": {
+                "description": "Event hubs tier plan."
+            }
+        },
+        "eventHubSkuCapacity": {
+            "type": "int",
+            "defaultValue": 1,
+            "minValue": 0,
+            "maxValue": 20,
+            "metadata": {
+                "description": "Monitoring metrics event hubs throughput units."
+            }
+        },
+        "eventHubAutoInflate": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Value that indicates whether AutoInflate is enabled for eventhub namespace."
+            }
+        },
+        "eventHubMaxThroughput": {
+            "type": "int",
+            "defaultValue": 0,
+            "minValue": 0,
+            "maxValue": 20,
+            "metadata": {
+                "description": "Upper limit of throughput units when AutoInflate is enabled."
+            }
+        },
+        "eventHubRetentionInDays": {
+            "type": "int",
+            "defaultValue": 1,
+            "minValue": 1,
+            "maxValue": 7,
+            "metadata": {
+                "description": "Number of days to retain the events for this Event Hub."
+            }
+        },
+        "eventHubPartitionCount": {
+            "type": "int",
+            "defaultValue": 4,
+            "minValue": 1,
+            "maxValue": 32,
+            "metadata": {
+                "description": "Number of partitions created for the Event Hub."
+            }
+        },
+        "eventHubListenPolicyName": {
+            "type": "string",
+            "metadata": {
+                "description": "Event hubs listen policy name."
+            }
+        },
+        "eventHubSendPolicyName": {
+            "type": "string",
+            "metadata": {
+                "description": "Event hubs send policy name."
+            }
+        }
+    },
+    "variables": {
+        "eventHubNamespaceId": "[resourceId('Microsoft.EventHub/namespaces', parameters('eventHubNamespaceName'))]",
+        "eventHubListenRuleId": "[resourceId('Microsoft.EventHub/namespaces/AuthorizationRules', parameters('eventHubNamespaceName'), parameters('eventHubListenPolicyName'))]",
+        "eventHubWriteRuleId": "[resourceId('Microsoft.EventHub/namespaces/AuthorizationRules', parameters('eventHubNamespaceName'), parameters('eventHubWritePolicyName'))]",
+        "eventHubNamespaceApiVersion": "[providers('Microsoft.EventHub', 'namespaces').apiVersions[0]]",
+        "eventHubsApiVersion": "[providers('Microsoft.EventHub', 'namespaces/eventhubs').apiVersions[0]]",
+        "eventHubAuthRulesApiVersion": "[providers('Microsoft.EventHub', 'namespaces/authorizationRules').apiVersions[0]]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2019-10-01",
+            "name": "dummyTemplate",
+            "dependsOn": [],
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {},
+                    "variables": {},
+                    "resources": []
+                },
+                "parameters": {}
+            }
+        },
+        {
+            "comments": "Azure Event Hub Namespace",
+            "condition": "[parameters('createMetricsEventHubNamespace')]",
+            "type": "Microsoft.EventHub/namespaces",
+            "apiVersion": "[variables('eventHubNamespaceApiVersion')]",
+            "name": "[parameters('eventHubNamespaceName')]",
+            "location": "[parameters('eventHubLocation')]",
+            "dependsOn": [],
+            "sku": {
+                "name": "[parameters('eventHubSku')]",
+                "tier": "[parameters('eventHubSku')]",
+                "capacity": "[parameters('eventHubSkuCapacity')]"
+            },
+            "properties": {
+                "isAutoInflateEnabled": "[parameters('eventHubAutoInflate')]",
+                "maximumThroughputUnits": "[parameters('eventHubMaxThroughput')]"
+            }
+        },
+        {
+            "comments": "Azure Event hub authorization rule to listen to events",
+            "type": "Microsoft.EventHub/namespaces/AuthorizationRules",
+            "apiVersion": "[variables('eventHubAuthRulesApiVersion')]",
+            "name": "[concat(parameters('eventHubNamespaceName'), '/', parameters('eventHubListenPolicyName'))]",
+            "location": "[parameters('eventHubLocation')]",
+            "dependsOn": [
+                "[if(parameters('createMetricsEventHubNamespace'), variables('eventHubNamespaceId'), 'dummyTemplate')]"
+            ],
+            "properties": {
+                "rights": [
+                    "Listen"
+                ]
+            }
+        },
+        {
+            "comments": "Azure Event hub authorization rule to send events",
+            "type": "Microsoft.EventHub/namespaces/AuthorizationRules",
+            "apiVersion": "[variables('eventHubAuthRulesApiVersion')]",
+            "name": "[concat(parameters('eventHubNamespaceName'), '/', parameters('eventHubSendPolicyName'))]",
+            "location": "[parameters('eventHubLocation')]",
+            "dependsOn": [
+                "[if(parameters('createMetricsEventHubNamespace'), variables('eventHubNamespaceId'), 'dummyTemplate')]"
+            ],
+            "properties": {
+                "rights": [
+                    "Send"
+                ]
+            }
+        },
+        {
+            "comments": "Azure Event Hub for collected metrics",
+            "type": "Microsoft.EventHub/namespaces/eventhubs",
+            "name": "[concat(parameters('eventHubNamespaceName'), '/', parameters('eventHubsName'))]",
+            "apiVersion": "[variables('eventHubsApiVersion')]",
+            "location": "[parameters('eventHubLocation')]",
+            "dependsOn": [
+                "[if(parameters('createMetricsEventHubNamespace'), variables('eventHubNamespaceId'), 'dummyTemplate')]"
+            ],
+            "properties": {
+                "messageRetentionInDays": "[parameters('eventHubRetentionInDays')]",
+                "partitionCount": "[parameters('eventHubPartitionCount')]",
+                "status": "Active"
+            }
+        }
+    ],
+    "outputs": {
+        "eventHubListenKey": {
+            "type": "string",
+            "value": "[listKeys(variables('eventHubListenRuleId'), variables('eventHubAuthRulesApiVersion')).primaryKey]"
+        },
+        "eventHubSendKey": {
+            "type": "string",
+            "value": "[listKeys(variables('eventHubListenRuleId'), variables('eventHubAuthRulesApiVersion')).primaryKey]"
+        }
+    }
+}

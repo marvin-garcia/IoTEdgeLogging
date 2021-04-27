@@ -20,38 +20,44 @@ namespace FunctionApp
         private static string _containerName = Environment.GetEnvironmentVariable("ContainerName");
         private static string _workspaceId = Environment.GetEnvironmentVariable("WorkspaceId");
         private static string _workspaceKey = Environment.GetEnvironmentVariable("WorkspaceKey");
-        private static string _workspaceApiVersion = "2016-04-01";
+        private static string _workspaceApiVersion = Environment.GetEnvironmentVariable("WorkspaceApiVersion");
         private static string _logType = Environment.GetEnvironmentVariable("LogType");
-        private static int _logMaxSizeMB = 28;
-
+        private static int _logMaxSizeMB = Convert.ToInt32(Environment.GetEnvironmentVariable("LogsMaxSizeMB"));
+        private static bool _compressForUpload = Convert.ToBoolean(Environment.GetEnvironmentVariable("CompressForUpload"));
+        
         [FunctionName("ProcessModuleLogs")]
         public static async Task Run(
-            //[BlobTrigger("iotedgelogs/{name}", Connection = "StorageConnectionString")]Stream myBlob,
-            //string name,
-            [QueueTrigger("%QueueName%", Connection = "StorageConnectionString")] string queueItem,
+            [BlobTrigger("%ContainerName%/{blobName}.json", Connection = "StorageConnectionString")] Stream myBlob,
+            string blobName,
+            //[QueueTrigger("%QueueName%", Connection = "StorageConnectionString")] string queueItem,
             ILogger log)
         {
             try
             {
-                log.LogInformation($"ProcessModuleLogs Received new queue item");
+                #region Queue trigger
+                //JObject storageEvent = JsonConvert.DeserializeObject<JObject>(queueItem);
+                //var match = Regex.Match(storageEvent["subject"].ToString(), "/blobServices/default/containers/(.*)/blobs/(.*)", RegexOptions.IgnoreCase);
+                //if (!match.Success)
+                //{
+                //    log.LogWarning($"Unable to parse blob Url from {storageEvent["subject"]}");
+                //    return;
+                //}
 
-                JObject storageEvent = JsonConvert.DeserializeObject<JObject>(queueItem);
-                var match = Regex.Match(storageEvent["subject"].ToString(), "/blobServices/default/containers/(.*)/blobs/(.*)", RegexOptions.IgnoreCase);
-                if (!match.Success)
-                {
-                    log.LogWarning($"Unable to parse blob Url from {storageEvent["subject"]}");
-                    return;
-                }
+                //if (!string.Equals(match.Groups[1].Value, _containerName))
+                //{
+                //    log.LogDebug($"Ignoring queue item because it is related to container '{match.Groups[1].Value}'");
+                //    return;
+                //}
 
-                if (!string.Equals(match.Groups[1].Value, _containerName))
-                {
-                    log.LogDebug($"Ignoring queue item because it is related to container '{match.Groups[1].Value}'");
-                    return;
-                }
+                //string blobName = match.Groups[2].Value;
+                #endregion
 
-                log.LogInformation("ProcessModuleLogs function received a new queue message");
-                log.LogDebug($"Message content: {queueItem}");
+                #region blob trigger (debugging)
+                blobName += ".json";
+                #endregion
 
+                log.LogInformation($"ProcessModuleLogs function received a new queue message from blob {blobName}");
+                
                 // Create a BlobServiceClient object which will be used to create a container client
                 BlobServiceClient blobServiceClient = new BlobServiceClient(_connectionString);
 
@@ -59,7 +65,6 @@ namespace FunctionApp
                 BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(_containerName);
 
                 // Get blob client object
-                string blobName = match.Groups[2].Value;
                 BlobClient blobClient = containerClient.GetBlobClient(blobName);
 
                 // Read the blob's contents
@@ -77,9 +82,8 @@ namespace FunctionApp
                 AzureLogAnalytics logAnalytics = new AzureLogAnalytics(
                     workspaceId: _workspaceId,
                     workspaceKey: _workspaceKey,
-                    logType: _logType,
-                    apiVersion: _workspaceApiVersion,
-                    resourceId: _hubResourceId);
+                    logger: log,
+                    apiVersion: _workspaceApiVersion);
 
                 // because log analytics supports messages up to 30MB,
                 // we have to break logs in chunks to fit in on each request
@@ -99,12 +103,16 @@ namespace FunctionApp
                     LogAnalyticsLog[] logsChunk = logAnalyticsLogs.Skip(count).Take(limit).ToArray();
                     try
                     {
-                        logAnalytics.Post(JsonConvert.SerializeObject(logsChunk));
-                        log.LogInformation("Request successful");
+                        //logAnalytics.Post(JsonConvert.SerializeObject(logsChunk), _logType, _hubResourceId);
+                        bool success = await logAnalytics.PostToCustomTableAsync(JsonConvert.SerializeObject(logsChunk), _logType, _hubResourceId, _compressForUpload);
+                        if (success)
+                            log.LogInformation("ProcessModuleLogs completed a request successfully");
+                        else
+                            log.LogError("ProcessModuleLogs failed to post custom logs");
                     }
                     catch (Exception e)
                     {
-                        log.LogError($"Request failed with exception {e}");
+                        log.LogError($"ProcessModuleLogs failed with exception {e}");
                     }
 
                     count += steps;
@@ -113,7 +121,7 @@ namespace FunctionApp
             }
             catch (Exception e)
             {
-                log.LogError($"GetModuleLogs failed with the following exception: {e}");
+                log.LogError($"ProcessModuleLogs failed with the following exception: {e}");
             }
         }
     }

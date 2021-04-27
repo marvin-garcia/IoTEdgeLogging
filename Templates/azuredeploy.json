@@ -288,6 +288,57 @@
         "description": "Log analytics Workspace name."
       }
     },
+    "createMetricsEventHubNamespace": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Whether to create event hub to capture monitoring metrics."
+      }
+    },
+    "eventHubLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "Monitoring metrics event hub namespace location."
+      }
+    },
+    "eventHubResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "Monitoring metrics event hub namespace resource group."
+      }
+    },
+    "eventHubNamespace": {
+      "type": "string",
+      "metadata": {
+        "description": "Monitoring metrics event hub namespace name."
+      }
+    },
+    "eventHubSku": {
+      "type": "string",
+      "defaultValue": "Standard",
+      "allowedValues": [
+        "Standard",
+        "Basic"
+      ],
+      "metadata": {
+        "description": "Monitoring metrics event hub tier plan."
+      }
+    },
+    "eventHubCapacity": {
+      "type": "int",
+      "defaultValue": 1,
+      "minValue": 0,
+      "maxValue": 20,
+      "metadata": {
+        "description": "Monitoring metrics event hubs throughput units."
+      }
+    },
+    "evnetHubAuthRuleName": {
+      "type": "string",
+      "metadata": {
+        "description": "Monitoring metrics event hub authorization rule name"
+      }
+    },
     "functionAppName": {
       "type": "string",
       "metadata": {
