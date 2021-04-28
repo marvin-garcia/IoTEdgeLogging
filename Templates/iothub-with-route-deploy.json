@@ -32,6 +32,26 @@
     "iotHubServicePolicyName": {
       "type": "string"
     },
+    "eventHubsResourceGroup": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "eventHubsConnectionString": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "eventHubsEndpointName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "eventHubsRouteName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "eventHubsRouteCondition": {
+      "type": "string",
+      "defaultValue": ""
+    },
     "dpsName": {
       "type": "string"
     },
@@ -130,7 +150,15 @@
           "endpoints": {
             "serviceBusQueues": [],
             "serviceBusTopics": [],
-            "eventHubs": [],
+            "eventHubs": [
+              {
+                "id": "[guid(resourceGroup().id, deployment().name)]",
+                "subscriptionId": "[subscription().id]",
+                "resourceGroup": "[parameters('eventHubsResourceGroup')]",
+                "name": "[parameters('eventHubsEndpointName')]",
+                "connectionString": "[parameters('eventHubsConnectionString')]"
+              }
+            ],
             "storageContainers": []
           },
           "routes": [
@@ -140,6 +168,15 @@
               "condition": "true",
               "endpointNames": [
                 "events"
+              ],
+              "isEnabled": true
+            },
+            {
+              "name": "[parameters('eventHubsRouteName')]",
+              "source": "DeviceMessages",
+              "condition": "[parameters('eventHubsRouteCondition')]",
+              "endpointNames": [
+                "[parameters('eventHubsEndpointName')]"
               ],
               "isEnabled": true
             }
