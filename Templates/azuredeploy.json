@@ -288,32 +288,70 @@
         "description": "Log analytics Workspace name."
       }
     },
-    "createMetricsEventHubNamespace": {
+    "createEventHubsNamespace": {
       "type": "bool",
       "defaultValue": true,
       "metadata": {
-        "description": "Whether to create event hub to capture monitoring metrics."
+        "description": "Whether to create event hubs namespace to capture monitoring metrics."
       }
     },
-    "eventHubLocation": {
-      "type": "string",
+    "createEventHubs": {
+      "type": "bool",
+      "defaultValue": true,
       "metadata": {
-        "description": "Monitoring metrics event hub namespace location."
+        "description": "Whether to create event hubs to capture monitoring metrics."
       }
     },
     "eventHubResourceGroup": {
       "type": "string",
+      "defaultValue": "",
       "metadata": {
-        "description": "Monitoring metrics event hub namespace resource group."
+        "description": "Event hubs namespace resource group."
       }
     },
-    "eventHubNamespace": {
+    "eventHubsLocation": {
       "type": "string",
+      "defaultValue": "",
       "metadata": {
-        "description": "Monitoring metrics event hub namespace name."
+        "description": "Event hubs namespace location."
       }
     },
-    "eventHubSku": {
+    "eventHubsNamespace": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Event hubs namespace name."
+      }
+    },
+    "eventHubsName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Event hubs name."
+      }
+    },
+    "eventHubsEndpointName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "IoT hub custom endpoint name to event hubs."
+      }
+    },
+    "eventHubsRouteName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "IoT hub event hubs route name."
+      }
+    },
+    "eventHubsRouteCondition": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Condition to route IoT hub event messages to event hubs route."
+      }
+    },
+    "eventHubsSku": {
       "type": "string",
       "defaultValue": "Standard",
       "allowedValues": [
@@ -321,10 +359,10 @@
         "Basic"
       ],
       "metadata": {
-        "description": "Monitoring metrics event hub tier plan."
+        "description": "Event hubs tier plan."
       }
     },
-    "eventHubCapacity": {
+    "eventHubsSkuCapacity": {
       "type": "int",
       "defaultValue": 1,
       "minValue": 0,
@@ -333,10 +371,38 @@
         "description": "Monitoring metrics event hubs throughput units."
       }
     },
-    "evnetHubAuthRuleName": {
-      "type": "string",
+    "eventHubsAutoInflate": {
+      "type": "bool",
+      "defaultValue": false,
       "metadata": {
-        "description": "Monitoring metrics event hub authorization rule name"
+        "description": "Value that indicates whether AutoInflate is enabled for eventhub namespace."
+      }
+    },
+    "eventHubsMaxThroughput": {
+      "type": "int",
+      "defaultValue": 0,
+      "minValue": 0,
+      "maxValue": 20,
+      "metadata": {
+        "description": "Upper limit of throughput units when AutoInflate is enabled."
+      }
+    },
+    "eventHubsRetentionInDays": {
+      "type": "int",
+      "defaultValue": 1,
+      "minValue": 1,
+      "maxValue": 7,
+      "metadata": {
+        "description": "Number of days to retain the events for this Event Hub."
+      }
+    },
+    "eventHubsPartitionCount": {
+      "type": "int",
+      "defaultValue": 4,
+      "minValue": 1,
+      "maxValue": 32,
+      "metadata": {
+        "description": "Number of partitions created for the Event Hub."
       }
     },
     "functionAppName": {
@@ -402,9 +468,66 @@
     "workspaceApiVersion": "[providers('microsoft.operationalinsights', 'workspaces').apiVersions[0]]",
     "iotHubDeploymentName": "[concat('iothub-', parameters('environmentHashId'))]",
     "eventGridDeploymentName": "[concat('storagesystemtopic-', parameters('environmentHashId'))]",
+    "eventHubsDeploymentName": "[concat('eventhubs-', parameters('environmentHashId'))]",
+    "eventHubsListenPolicyName": "[concat('listen-', parameters('environmentHashId'))]",
+    "eventHubsSendPolicyName": "[concat('send-', parameters('environmentHashId'))]",
+    "eventHubsConsumerGroup": "$default",
     "linkedDeploymentApiVersion": "2020-10-01"
   },
   "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "condition": "[parameters('createEventHubs')]",
+      "apiVersion": "[variables('linkedDeploymentApiVersion')]",
+      "name": "[variables('eventHubsDeploymentName')]",
+      "resourceGroup": "[parameters('eventHubResourceGroup')]",
+      "dependsOn": [],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "contentVersion": "1.0.0.0",
+          "uri": "[concat(parameters('templateUrl'), '/', parameters('branchName'), '/Templates/eventhubs-deploy.json')]"
+        },
+        "parameters": {
+          "createNamespace": {
+            "value": "[parameters('createEventHubsNamespace')]"
+          },
+          "location": {
+            "value": "[parameters('eventHubsLocation')]"
+          },
+          "namespaceName": {
+            "value": "[parameters('eventHubsNamespace')]"
+          },
+          "eventHubsName": {
+            "value": "[parameters('eventHubsName')]"
+          },
+          "sku": {
+            "value": "[parameters('eventHubsSku')]"
+          },
+          "skuCapacity": {
+            "value": "[parameters('eventHubsSkuCapacity')]"
+          },
+          "autoInflate": {
+            "value": "[parameters('eventHubsAutoInflate')]"
+          },
+          "maxThroughput": {
+            "value": "[parameters('eventHubsMaxThroughput')]"
+          },
+          "retentionInDays": {
+            "value": "[parameters('eventHubsRetentionInDays')]"
+          },
+          "partitionCount": {
+            "value": "[parameters('eventHubsPartitionCount')]"
+          },
+          "listenPolicyName": {
+            "value": "[variables('eventHubsListenPolicyName')]"
+          },
+          "sendPolicyName": {
+            "value": "[variables('eventHubsSendPolicyName')]"
+          }
+        }
+      }
+    },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "[variables('linkedDeploymentApiVersion')]",
@@ -447,6 +570,24 @@
           },
           "iotHubServicePolicyName": {
             "value": "[parameters('iotHubServicePolicyName')]"
+          },
+          "createEventHubsRoute": {
+            "value": "[parameters('createEventHubsNamespace')]"
+          },
+          "eventHubsResourceGroup": {
+            "value": "[parameters('eventHubResourceGroup')]"
+          },
+          "eventHubsConnectionString": {
+            "value": "[if(parameters('createEventHubs'), concat('Endpoint=sb://', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.endpoint.value, ';SharedAccessKeyName=', variables('eventHubsSendPolicyName'), ';SharedAccessKey=', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.sendKey.value), '')]"
+          },
+          "eventHubsEndpointName": {
+            "value": "[parameters('eventHubsEndpointName')]"
+          },
+          "eventHubsRouteName": {
+            "value": "[parameters('eventHubsRouteName')]"
+          },
+          "eventHubsRouteCondition": {
+            "value": "[parameters('eventHubsRouteCondition')]"
           },
           "dpsName": {
             "value": "[variables('dpsName')]"
@@ -664,11 +805,27 @@
             },
             {
               "name": "HubConnectionString",
-              "value": "[concat('HostName=', reference(variables('iotHubDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.iotHubHostname.value, ';SharedAccessKeyName=', parameters('iotHubServicePolicyName'), ';SharedAccessKey=', reference(variables('iotHubDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.iotHubServiceKey.value)]"
+              "value": "[concat('HostName=', reference(variables('iotHubDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.hostname.value, ';SharedAccessKeyName=', parameters('iotHubServicePolicyName'), ';SharedAccessKey=', reference(variables('iotHubDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.serviceKey.value)]"
             },
             {
               "name": "HubResourceId",
-              "value": "[reference(variables('iotHubDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.iotHubResourceId.value]"
+              "value": "[reference(variables('iotHubDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.resourceId.value]"
+            },
+            {
+              "name": "EventHubName",
+              "value": "[parameters('eventHubsName')]"
+            },
+            {
+              "name": "EventHubConsumerGroup",
+              "value": "[variables('eventHubsConsumerGroup')]"
+            },
+            {
+              "name": "EventHubConnectionString",
+              "value": "[concat('Endpoint=sb://', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.endpoint.value, ';SharedAccessKeyName=', variables('eventHubsListenPolicyName'), ';SharedAccessKey=', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.listenKey.value)]"
+            },
+            {
+              "name": "CompressForUpload",
+              "value": "true"
             },
             {
               "name": "LogsContentType",
@@ -719,7 +876,7 @@
   "outputs": {
     "iotHubResourceId": {
       "type": "string",
-      "value": "[reference(variables('iotHubDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.iotHubResourceId.value]"
+      "value": "[reference(variables('iotHubDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.resourceId.value]"
     },
     "workspaceId": {
       "type": "string",
@@ -728,6 +885,22 @@
     "workspaceSharedKey": {
       "type": "string",
       "value": "[listKeys(variables('workspaceId'), variables('workspaceApiVersion')).primarySharedKey]"
+    },
+    "eventHubsNamespaceResourceId": {
+      "type": "string",
+      "value": "[if(parameters('createEventHubs'), reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.namespaceResourceId.value, '')]"
+    },
+    "eventHubsInstanceResourceId": {
+      "type": "string",
+      "value": "[if(parameters('createEventHubs'), reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.instanceResourceId.value, '')]"
+    },
+    "eventHubsListenConnectionString": {
+      "type": "string",
+      "value": "[if(parameters('createEventHubs'), concat('Endpoint=sb://', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.endpoint.value, ';SharedAccessKeyName=', variables('eventHubsListenPolicyName'), ';SharedAccessKey=', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.listenKey.value), '')]"
+    },
+    "eventHubsSendConnectionString": {
+      "type": "string",
+      "value": "[if(parameters('createEventHubs'), concat('Endpoint=sb://', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.endpoint.value, ';SharedAccessKeyName=', variables('eventHubsSendPolicyName'), ';SharedAccessKey=', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.sendKey.value), '')]"
     }
   }
 }

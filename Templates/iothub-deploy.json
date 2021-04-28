@@ -32,6 +32,29 @@
     "iotHubServicePolicyName": {
       "type": "string"
     },
+    "createEventHubsRoute": {
+      "type": "bool"
+    },
+    "eventHubsResourceGroup": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "eventHubsConnectionString": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "eventHubsEndpointName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "eventHubsRouteName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "eventHubsRouteCondition": {
+      "type": "string",
+      "defaultValue": ""
+    },
     "dpsName": {
       "type": "string"
     },
@@ -96,7 +119,7 @@
   "resources": [
     {
       "comments": "Azure IoT Hub",
-      "condition": "[parameters('createIoTHub')]",
+      "condition": "[and(parameters('createIoTHub'), not(parameters('createEventHubsRoute')))]",
       "apiVersion": "2020-07-10-preview",
       "type": "Microsoft.Devices/Iothubs",
       "name": "[parameters('iotHubName')]",
@@ -140,6 +163,103 @@
               "condition": "true",
               "endpointNames": [
                 "events"
+              ],
+              "isEnabled": true
+            }
+          ],
+          "fallbackRoute": {
+            "name": "$fallback",
+            "source": "DeviceMessages",
+            "condition": "true",
+            "endpointNames": [
+              "events"
+            ],
+            "isEnabled": true
+          }
+        },
+        "messagingEndpoints": {
+          "fileNotifications": {
+            "lockDurationAsIso8601": "PT1M",
+            "ttlAsIso8601": "PT1H",
+            "maxDeliveryCount": 10
+          }
+        },
+        "cloudToDevice": {
+          "maxDeliveryCount": 10,
+          "defaultTtlAsIso8601": "PT1H",
+          "feedback": {
+            "lockDurationAsIso8601": "PT1M",
+            "ttlAsIso8601": "PT1H",
+            "maxDeliveryCount": 10
+          }
+        },
+        "features": "None",
+        "minTlsVersion": "1.2"
+      }
+    },
+    {
+      "comments": "Azure IoT Hub",
+      "condition": "[and(parameters('createIoTHub'), parameters('createEventHubsRoute'))]",
+      "apiVersion": "2020-07-10-preview",
+      "type": "Microsoft.Devices/Iothubs",
+      "name": "[parameters('iotHubName')]",
+      "location": "[parameters('iotHubLocation')]",
+      "sku": {
+        "name": "[parameters('iotHubSku')]",
+        "tier": "[parameters('iotHubTier')]",
+        "capacity": "[parameters('iotHubCapacity')]"
+      },
+      "dependsOn": [],
+      "properties": {
+        "location": "[parameters('iotHubLocation')]",
+        "authorizationPolicies": [
+          {
+            "keyName": "[parameters('iotHubOwnerPolicyName')]",
+            "rights": "RegistryWrite,ServiceConnect,DeviceConnect"
+          },
+          {
+            "keyName": "[parameters('iotHubServicePolicyName')]",
+            "rights": "ServiceConnect,RegistryRead"
+          }
+        ],
+        "ipFilterRules": [],
+        "eventHubEndpoints": {
+          "events": {
+            "retentionTimeInDays": "[parameters('iotHubRetentionInDays')]",
+            "partitionCount": "[parameters('iotHubPartitionCount')]"
+          }
+        },
+        "routing": {
+          "endpoints": {
+            "serviceBusQueues": [],
+            "serviceBusTopics": [],
+            "eventHubs": [
+              {
+                "id": "[guid(resourceGroup().id, deployment().name)]",
+                "subscriptionId": "[subscription().id]",
+                "resourceGroup": "[parameters('eventHubsResourceGroup')]",
+                "name": "[parameters('eventHubsEndpointName')]",
+                "connectionString": "[parameters('eventHubsConnectionString')]"
+              }
+            ],
+            "storageContainers": []
+          },
+          "routes": [
+            {
+              "name": "[variables('iotHubEventsRoute')]",
+              "source": "DeviceMessages",
+              "condition": "true",
+              "endpointNames": [
+                "events"
+              ],
+              "isEnabled": true
+            },
+            {
+              "name": "[parameters('eventHubsRouteName')]",
+              "source": "DeviceMessages",
+              "condition": "[parameters('eventHubsRouteCondition')]",
+              "endpointNames": [
+                "[parameters('eventHubsEndpointName')]"
               ],
               "isEnabled": true
             }
@@ -370,19 +490,19 @@
     }
   ],
   "outputs": {
-    "iotHubHostname": {
+    "hostname": {
       "type": "string",
       "value": "[reference(variables('iotHubId'), variables('iotHubApiVersion')).hostName]"
     },
-    "iotHubResourceId": {
+    "resourceId": {
       "type": "string",
       "value": "[variables('iotHubId')]"
     },
-    "iotHubOwnerKey": {
+    "ownerKey": {
       "type": "string",
       "value": "[listKeys(variables('iotHubOwnerKeysId'), variables('iotHubApiVersion')).primaryKey]"
     },
-    "iotHubServiceKey": {
+    "serviceKey": {
       "type": "string",
       "value": "[listKeys(variables('iotHubServiceKeysId'), variables('iotHubApiVersion')).primaryKey]"
     }
