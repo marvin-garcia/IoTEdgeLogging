@@ -107,7 +107,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2019-10-01",
-            "name": "dummyTemplate",
+            "name": "ehDummyTemplate",
             "dependsOn": [],
             "properties": {
                 "mode": "Incremental",
@@ -146,7 +146,7 @@
             "name": "[concat(parameters('namespaceName'), '/', parameters('listenPolicyName'))]",
             "location": "[parameters('location')]",
             "dependsOn": [
-                "[if(parameters('createNamespace'), variables('NamespaceId'), 'dummyTemplate')]"
+                "[if(parameters('createNamespace'), variables('NamespaceId'), 'ehDummyTemplate')]"
             ],
             "properties": {
                 "rights": [
@@ -161,7 +161,7 @@
             "name": "[concat(parameters('namespaceName'), '/', parameters('sendPolicyName'))]",
             "location": "[parameters('location')]",
             "dependsOn": [
-                "[if(parameters('createNamespace'), variables('NamespaceId'), 'dummyTemplate')]"
+                "[if(parameters('createNamespace'), variables('NamespaceId'), 'ehDummyTemplate')]"
             ],
             "properties": {
                 "rights": [
@@ -176,7 +176,7 @@
             "apiVersion": "[variables('eventHubsApiVersion')]",
             "location": "[parameters('location')]",
             "dependsOn": [
-                "[if(parameters('createNamespace'), variables('NamespaceId'), 'dummyTemplate')]"
+                "[if(parameters('createNamespace'), variables('NamespaceId'), 'ehDummyTemplate')]"
             ],
             "properties": {
                 "messageRetentionInDays": "[parameters('retentionInDays')]",
