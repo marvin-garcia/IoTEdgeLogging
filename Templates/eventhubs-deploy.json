@@ -96,7 +96,7 @@
     },
     "variables": {
         "NamespaceId": "[resourceId('Microsoft.EventHub/namespaces', parameters('namespaceName'))]",
-        "instanceId": "[resourceId('Microsoft.EventHub/namespaces/eventhubs', parameters('eventHubsName'))]",
+        "instanceId": "[resourceId('Microsoft.EventHub/namespaces/eventhubs', parameters('namespaceName'), parameters('eventHubsName'))]",
         "listenRuleId": "[resourceId('Microsoft.EventHub/namespaces/AuthorizationRules', parameters('namespaceName'), parameters('listenPolicyName'))]",
         "sendRuleId": "[resourceId('Microsoft.EventHub/namespaces/AuthorizationRules', parameters('namespaceName'), parameters('sendPolicyName'))]",
         "namespaceApiVersion": "[providers('Microsoft.EventHub', 'namespaces').apiVersions[0]]",
