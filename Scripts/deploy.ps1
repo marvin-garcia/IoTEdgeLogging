@@ -19,24 +19,33 @@ function New-IoTEnvironment()
     $create_workspace = $false
     $create_storage = $false
     $create_event_grid = $false
+    $enable_monitoring = $false
+    $create_event_hubs = $false
+    $create_event_hubs_namespace = $false
+    $event_hubs_name = "metricscollector-$($env_hash)"
+    $event_hubs_listen_rule = "listen-$($env_hash)"
+    $event_hubs_send_rule = "send-$($env_hash)"
+    $events_hubs_endpoint = "metricscollector-$($env_hash)"
+    $event_hubs_route = "monitoringmetrics-$($env_hash)"
+    $event_hubs_route_condition = "id = 'AzureMonitorForIotEdgeModule'"
     $deployment_condition = "tags.logPullEnabled='true'"
     $function_app_name = "iotedgelogsapp-$($env_hash)"
     $logs_regex = "\b(WRN?|ERR?|CRIT?)\b"
 
     Write-Host
-    Write-Host "##############################################"
-    Write-Host "##############################################"
-    Write-Host "####                                      ####"
-    Write-Host "#### IoT Edge Logging deployment solution ####"
-    Write-Host "####                                      ####"
-    Write-Host "##############################################"
-    Write-Host "##############################################"
+    Write-Host "################################################"
+    Write-Host "################################################"
+    Write-Host "####                                        ####"
+    Write-Host "#### IoT Edge logging & monitoring solution ####"
+    Write-Host "####                                        ####"
+    Write-Host "################################################"
+    Write-Host "################################################"
 
     Start-Sleep -Milliseconds 1500
 
     Write-Host
-    Write-Host "This deployment script will help you deploy the IoT Edge Logging solution in your Azure subscription."
-    Write-Host "It can be deployed as a sandbox environment, with a new IoT hub and a test IoT Edge device generating sample logs, or it can connect to your existing IoT Hub and Log analytics workspace."
+    Write-Host "This deployment script will help you deploy the IoT Edge logging & monitoring solution in your Azure subscription."
+    Write-Host "It can be deployed as a sandbox environment, with a new IoT hub and a test IoT Edge device generating sample logs and collecting monitoring metrics, or it can connect to your existing IoT Hub and Log analytics workspace."
     Write-Host
     Write-Host "Press Enter to continue."
     Read-Host
@@ -53,7 +62,6 @@ function New-IoTEnvironment()
         }
         else
         {
-            Write-Host
             Write-Host "Provide a name for the resource group to host all the new resources that will be deployed as part of your solution."
             $first = $false
         }
@@ -72,7 +80,7 @@ function New-IoTEnvironment()
     #endregion
 
     #region iot hub details
-    $iot_hubs = az iot hub list | ConvertFrom-Json
+    $iot_hubs = az iot hub list | ConvertFrom-Json | Sort-Object -Property id
     if ($iot_hubs.Count -gt 0)
     {
         $iot_hub_options = @("Create new IoT hub", "Use existing IoT hub")
@@ -80,7 +88,6 @@ function New-IoTEnvironment()
         Write-Host "Choose an option from the list for the IoT hub (using its Index):"
         for ($index = 0; $index -lt $iot_hub_options.Count; $index++)
         {
-            # Write-Host
             Write-Host "$($index + 1): $($iot_hub_options[$index])"
         }
         while ($true)
@@ -172,24 +179,24 @@ function New-IoTEnvironment()
     else
     {
         $logs_regex = ".*"
+        Write-Host
         Write-Host -ForegroundColor Yellow "IMPORTANT: The solution will be configured to capture all logs from the edge modules. To change this behavior, you can go to the Configuration section of the Function App '$($function_app_name)' and update the regular expression for the app setting 'LogsRegex'."
-        Write-Host
-
+        
         Start-Sleep -Milliseconds 1500
 
+        Write-Host
         Write-Host -ForegroundColor Yellow "IMPORTANT: You must update device twin for your IoT edge devices with `"$($deployment_condition)`" to collect logs from their modules."
-        Write-Host
         
         Start-Sleep -Milliseconds 1500
         
+        Write-Host
         Write-Host "Press Enter to continue."
         Read-Host
-        Write-Host
     }
     #endregion
 
     #region storage account
-    $storage_accounts = az storage account list | ConvertFrom-Json
+    $storage_accounts = az storage account list | ConvertFrom-Json | Sort-Object -Property id
     if ($storage_accounts.Count -gt 0)
     {
         $storage_options = @("Create new storage account", "Use existing storage account")
@@ -197,7 +204,6 @@ function New-IoTEnvironment()
         Write-Host "Choose an option from the list for the storage account to store log files (using its Index):"
         for ($index = 0; $index -lt $storage_options.Count; $index++)
         {
-            #Write-Host
             Write-Host "$($index + 1): $($storage_options[$index])"
         }
         while ($true)
@@ -293,7 +299,7 @@ function New-IoTEnvironment()
     #endregion
 
     #region log analytics workspace
-    $workspaces = az monitor log-analytics workspace list | ConvertFrom-Json
+    $workspaces = az monitor log-analytics workspace list | ConvertFrom-Json | Sort-Object -Property id
     if ($workspaces.Count -gt 0)
     {
         $workspace_options = @("Create new log analytics workspace", "Use existing log analytics workspace")
@@ -301,7 +307,6 @@ function New-IoTEnvironment()
         Write-Host "Choose an option from the list for the Log Analytics workspace to connect to (using its Index):"
         for ($index = 0; $index -lt $workspace_options.Count; $index++)
         {
-            #Write-Host
             Write-Host "$($index + 1): $($workspace_options[$index])"
         }
         while ($true)
@@ -370,6 +375,195 @@ function New-IoTEnvironment()
     }
     #endregion
 
+    #region monitoring metrics
+    if ($create_iot_hub)
+    {
+        $enable_monitoring = $true
+        Write-Host
+        Write-Host "In addition to logging, this solution will enable IoT Edge monitoring with Azure Monitor. It will let you monitor your edge fleet at scale by using Azure Monitor to collect, store, visualize and generate alerts from metrics emitted by the IoT Edge runtime."
+    }
+    else
+    {
+        $metrics_options = @("Yes", "No")
+        Write-Host
+        Write-Host "In addition to logging, this solution can enable IoT Edge monitoring with Azure Monitor. It will let you monitor your edge fleet at scale by using Azure Monitor to collect, store, visualize and generate alerts from metrics emitted by the IoT Edge runtime."
+        Write-Host "Do you want to enable IoT Edge monitoring? Choose an option from the list (using its Index):"
+        for ($index = 0; $index -lt $metrics_options.Count; $index++)
+        {
+            Write-Host "$($index + 1): $($metrics_options[$index])"
+        }
+        while ($true)
+        {
+            $option = Read-Host -Prompt ">"
+            try
+            {
+                if ([int]$option -ge 1 -and [int]$option -le $metrics_options.Count)
+                {
+                    break
+                }
+            }
+            catch
+            {
+                Write-Host "Invalid index '$($option)' provided."
+            }
+            Write-Host "Choose from the list using an index between 1 and $($metrics_options.Count)."
+        }
+
+        if ($option -eq 1)
+        {
+            $enable_monitoring = $true
+        }
+    }
+
+    #region enable monitoring
+    if ($enable_monitoring)
+    {
+        Write-Host
+        Write-Host "Collected monitoring metrics can be uploaded directly to Log Analytics (requires outbound internet connectivity from the edge device(s)), or can be published as IoT messages (useful for local consumption). Metrics published as IoT messages are emitted as UTF8-encoded json from the endpoint '/messages/modules//outputs/metricOutput'."
+        
+        $metrics_options = @("To Log Analytics", "As IoT messages")
+        Write-Host
+        Write-Host "How should metrics be uploaded? Choose an option from the list (using its Index):"
+        for ($index = 0; $index -lt $metrics_options.Count; $index++)
+        {
+            Write-Host "$($index + 1): $($metrics_options[$index])"
+        }
+        while ($true)
+        {
+            $option = Read-Host -Prompt ">"
+            try
+            {
+                if ([int]$option -ge 1 -and [int]$option -le $metrics_options.Count)
+                {
+                    break
+                }
+            }
+            catch
+            {
+                Write-Host "Invalid index '$($option)' provided."
+            }
+            Write-Host "Choose from the list using an index between 1 and $($metrics_options.Count)."
+        }
+        if ($option -eq 1)
+        {
+            Write-Host
+            Write-Host -ForegroundColor Yellow "NOTE: Monitoring metrics will be sent directly from the edge to a log analytics workspace Log analytics workspace. Go to https://aka.ms/tbd-azuremon to find more details."
+
+            $monitoring_mode = "AzureMonitor"
+            $event_hubs_namespace = ""
+            $event_hubs_resouce_group = ""
+            $event_hubs_location = ""
+        }
+        else
+        {
+            Write-Host
+            Write-Host -ForegroundColor Yellow "NOTE: Monitoring metrics will be routed from IoT hub to an event hubs instance and processed by an Azure Function."
+
+            $create_event_hubs = $true
+            $monitoring_mode = "IoTMessage"
+
+            if (!$create_iot_hub)
+            {
+                #region event hub
+                $event_hubs_namespaces = az eventhubs namespace list | ConvertFrom-Json | Sort-Object -Property id
+                if (!!$iot_hub_location)
+                {
+                    Write-Host
+                    Write-Host -ForegroundColor Yellow "NOTE: For better performance, the event hubs namespace and function app will be in the same region as the IoT hub."
+                    
+                    $event_hubs_namespaces = $event_hubs_namespaces | Where-Object { $_.location.ToLower().Replace(' ', '') -eq $iot_hub_location }
+                }
+
+                if ($event_hubs_namespaces.Count -gt 0)
+                {
+                    $event_hubs_namespace_options = @("Create new event hubs namespace", "Use existing event hubs namespace")
+                    Write-Host
+                    Write-Host "Choose an option from the list for the event hubs namespace (using its Index):"
+                    for ($index = 0; $index -lt $event_hubs_namespace_options.Count; $index++)
+                    {
+                        Write-Host "$($index + 1): $($event_hubs_namespace_options[$index])"
+                    }
+                    while ($true)
+                    {
+                        $option = Read-Host -Prompt ">"
+                        try
+                        {
+                            if ([int]$option -ge 1 -and [int]$option -le $event_hubs_namespace_options.Count)
+                            {
+                                break
+                            }
+                        }
+                        catch
+                        {
+                            Write-Host "Invalid index '$($option)' provided."
+                        }
+                        Write-Host "Choose from the list using an index between 1 and $($event_hubs_namespace_options.Count)."
+                    }
+
+                    #region existing event hub namespace
+                    if ($option -eq 2)
+                    {
+                        Write-Host
+                        Write-Host "Choose an event hubs namespace to use from this list (using its Index):"
+                        for ($index = 0; $index -lt $event_hubs_namespaces.Count; $index++)
+                        {
+                            Write-Host "$($index + 1): $($event_hubs_namespaces[$index].id)"
+                        }
+                        while ($true)
+                        {
+                            $option = Read-Host -Prompt ">"
+                            try
+                            {
+                                if ([int]$option -ge 1 -and [int]$option -le $event_hubs_namespaces.Count)
+                                {
+                                    break
+                                }
+                            }
+                            catch
+                            {
+                                Write-Host "Invalid index '$($option)' provided."
+                            }
+                            Write-Host "Choose from the list using an index between 1 and $($event_hubs_namespaces.Count)."
+                        }
+
+                        $event_hubs_namespace = $event_hubs_namespaces[$option - 1].name
+                        $event_hubs_resouce_group = $event_hubs_namespaces[$option - 1].resourceGroup
+                        $event_hubs_location = $event_hubs_namespaces[$option - 1].location
+                    }
+                    #endregion
+                    else
+                    {
+                        $create_event_hubs_namespace = $true
+                    }
+                }
+                else
+                {
+                    $create_event_hubs_namespace = $true
+                }
+            }
+            else
+            {
+                $create_event_hubs_namespace = $true
+            }
+
+            if ($create_event_hubs_namespace)
+            {
+                $event_hubs_namespace = "eventhubs-$($env_hash)"
+                $event_hubs_resouce_group = $resource_group
+            }
+            #endregion
+        }
+    }
+    else
+    {
+        $event_hubs_namespace = ""
+        $event_hubs_resouce_group = ""
+        $event_hubs_location = ""
+    }
+    #endregion
+
+    #endregion
+
     #region obtain deployment location
     if ($ask_for_location)
     {
@@ -422,6 +616,10 @@ function New-IoTEnvironment()
     if ($create_workspace)
     {
         $workspace_location = $location
+    }
+    if ($create_event_hubs_namespace)
+    {
+        $event_hubs_location = $location
     }
     #endregion
 
@@ -504,9 +702,21 @@ function New-IoTEnvironment()
         "workspaceLocation" = @{ "value" = $workspace_location }
         "workspaceName" = @{ "value" = $workspace_name }
         "workspaceResourceGroup" = @{ "value" = $workspace_resource_group }
+        "createEventHubsNamespace" = @{ "value" = $create_event_hubs_namespace }
+        "createEventHubs" = @{ "value" = $create_event_hubs }
+        "eventHubResourceGroup" = @{ "value" = $event_hubs_resouce_group }
+        "eventHubsLocation" = @{ "value" = $event_hubs_location }
+        "eventHubsNamespace" = @{ "value" = $event_hubs_namespace }
+        "eventHubsName" = @{ "value" = $event_hubs_name }
+        "eventHubsEndpointName" = @{ "value" = $events_hubs_endpoint }
+        "eventHubsRouteName" = @{ "value" = $event_hubs_route }
+        "eventHubsRouteCondition" = @{ "value" = $event_hubs_route_condition }
+        "eventHubsListenPolicyName" = @{ "value" = $event_hubs_listen_rule }
+        "eventHubsSendPolicyName" = @{ "value" = $event_hubs_send_rule }
         "functionAppName" = @{ "value" = $function_app_name }
         "logsRegex" = @{ "value" = $logs_regex }
         "logsSince" = @{ "value" = "15m" }
+        "branchName" = @{ "value" = $(git rev-parse --abbrev-ref HEAD) }
     }
     Set-Content -Path "$($root_path)/Templates/azuredeploy.parameters.json" -Value (ConvertTo-Json $platform_parameters -Depth 5)
 
@@ -523,8 +733,21 @@ function New-IoTEnvironment()
     {
         throw "Something went wrong with the resource group deployment. Ending script."        
     }
+    #endregion
 
-    $deployment_output | Out-String
+    #region generate monitoring deployment manifest
+    $scrape_frequency = 300
+    $monitoring_template = "$($root_path)/EdgeSolution/monitoring.$($monitoring_mode.ToLower()).template.json"
+    $monitoring_manifest = "$($root_path)/EdgeSolution/monitoring.deployment.json"
+    Remove-Item -Path $monitoring_manifest -ErrorAction Ignore
+
+    (Get-Content -Path $monitoring_template -Raw) | ForEach-Object {
+        $_ -replace '__WORKSPACE_ID__', $deployment_output.properties.outputs.workspaceId.value `
+        -replace '__SHARED_KEY__', $deployment_output.properties.outputs.workspaceSharedKey.value `
+        -replace '__HUB_RESOURCE_ID__', $deployment_output.properties.outputs.iotHubResourceId.value `
+        -replace '__UPLOAD_TARGET__', $monitoring_mode `
+        -replace '__SCRAPE_FREQUENCY__', $scrape_frequency
+    } | Set-Content -Path $monitoring_manifest
     #endregion
 
     #region edge deployments
@@ -540,18 +763,6 @@ function New-IoTEnvironment()
             --target-condition=$deployment_condition
 
         # Create monitoring deployment
-        $upload_target = "AzureMonitor" # Can be AzureMonitor or IotMessage
-
-        # update IoT edge deployment with log analytics workspace details
-        Remove-Item -Path "$($root_path)/EdgeSolution/monitoring.deployment.json"
-
-        (Get-Content -Path "$($root_path)/EdgeSolution/monitoring.template.json" -Raw) | ForEach-Object {
-            $_ -replace '__WORKSPACE_ID__', $deployment_output.properties.outputs.workspaceId.value `
-            -replace '__SHARED_KEY__', $deployment_output.properties.outputs.workspaceSharedKey.value `
-            -replace '__HUB_RESOURCE_ID__', $deployment_output.properties.outputs.iotHubResourceId.value `
-            -replace '__UPLOAD_TARGET__', $upload_target
-        } | Set-Content -Path "$($root_path)/EdgeSolution/monitoring.deployment.json"
-
         $deployment_name = "edge-monitoring"
         $priority = 1
         
@@ -561,7 +772,7 @@ function New-IoTEnvironment()
             --layered `
             -d "$deployment_name" `
             --hub-name $iot_hub_name `
-            --content "$($root_path)/EdgeSolution/monitoring.deployment.json" `
+            --content $monitoring_manifest `
             --target-condition=$deployment_condition `
             --priority $priority
 
@@ -584,10 +795,56 @@ function New-IoTEnvironment()
     #region function app
     Write-Host
     Write-Host "Deploying code to Function App $function_app_name"
-    az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src "$($root_path)/FunctionApp/FunctionApp/deploy.zip"
+    $az_func = az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src "$($root_path)/FunctionApp/FunctionApp/deploy.zip" | ConvertFrom-Json
+    #endregion
+
+    #region notify of monitoring deployment steps
+    if (!$create_iot_hub -and $enable_monitoring)
+    {
+        #region create custom endpoint and message route
+        if ($monitoring_mode -eq "IoTMessage")
+        {
+            Write-Host
+            Write-Host "Creating IoT hub routing endpoint"
+
+            $eh_conn_string = "Endpoint=sb://$($deployment_output.properties.outputs.eventHubsNamespaceEndpoint.value);SharedAccessKeyName=$($event_hubs_send_rule);SharedAccessKey=$($deployment_output.properties.outputs.eventHubsSendKey.value);EntityPath=$($event_hubs_name)"
+
+            $routing_endpoints = az iot hub routing-endpoint create `
+                --resource-group $iot_hub_resource_group `
+                --hub-name $iot_hub_name `
+                --endpoint-type eventhub `
+                --endpoint-name "metricscollector-$($env_hash)" `
+                --endpoint-resource-group $resource_group `
+                --endpoint-subscription-id $(az account show --query id -o tsv) `
+                --connection-string $eh_conn_string | ConvertFrom-Json
+
+            Write-Host
+            Write-Host "Creating IoT hub route"
+
+            $routes = az iot hub route create `
+                --resource-group $iot_hub_resource_group `
+                --hub-name $iot_hub_name `
+                --endpoint-name "metricscollector-$($env_hash)" `
+                --source-type DeviceMessages `
+                --route-name "metricscollector-$($env_hash)" `
+                --condition $event_hubs_route_condition `
+                --enabled true | ConvertFrom-Json
+        }
+        #endregion
+
+        Write-Host
+        Write-Host -ForegroundColor Yellow "IMPORTANT: To start collecting metrics for your edge devices, you must create an IoT edge deployment with the Azure Monitor module. You can use the deployment manifest below on IoT hub '$($iot_hub_name)'."
+
+        Write-Host
+        Write-Host -ForegroundColor Yellow $(Get-Content $monitoring_manifest) -Separator "`r`n"
+
+        Write-Host
+        Write-Host -ForegroundColor Yellow "Go to https://aka.ms/azuremon for more details."
+    }
     #endregion
 
     Write-Host
+    Write-Host -ForegroundColor Green "Resource Group: $($resource_group)"
     Write-Host -ForegroundColor Green "Environment unique id: $($env_hash)"
 
     if ($create_iot_hub)

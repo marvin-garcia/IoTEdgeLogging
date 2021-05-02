@@ -1,4 +1,4 @@
-# deploy the script at .\FunctionApp\FunctionApp\
+# run commands at .\FunctionApp\FunctionApp\
 dotnet build /p:DeployOnBuild=true /p:DeployTarget=Package
 dotnet publish /p:CreatePackageOnPublish=true -o .\bin\Publish
-Compress-Archive -Path .\bin\publish\*  -DestinationPath deploy.zip
+Compress-Archive -Path .\bin\publish\*  -DestinationPath deploy.zip -Update

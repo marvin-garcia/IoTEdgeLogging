@@ -21,7 +21,7 @@ namespace FunctionApp
 
         [FunctionName("CollectMetrics")]
         public static async Task Run(
-            [EventHubTrigger("%EventHubName%", Connection = "EventHubConnectionString")] string eventHubMessages,
+            [EventHubTrigger("%EventHubName%", Connection = "EventHubConnectionString", ConsumerGroup = "%EventHubConsumerGroup%")] string eventHubMessages,
             ILogger log)
         {
             try

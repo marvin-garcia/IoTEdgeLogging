@@ -92,6 +92,16 @@ namespace FunctionApp
             return false;
         }
 
+        /// <summary>
+        /// Sends data to a custom logs table in Log Analytics
+        /// <param name="content"> HTTP request content string </param>
+        /// <param name="logType"> Custom log table name </param>
+        /// <param name="armResourceId"> Azure ARM resource ID </param>
+        /// <param name="compressForUpload"> Whether to compress message before uploading </param>
+        /// <returns>
+        /// True on success, false on failure.
+        /// </returns>
+        /// </summary>
         public async Task<bool> PostToCustomTableAsync(string content, string tableName, string armResourceId, bool compressForUpload)
         {
             try

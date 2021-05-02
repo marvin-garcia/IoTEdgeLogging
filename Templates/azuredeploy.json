@@ -598,7 +598,7 @@
             "value": "[parameters('eventHubResourceGroup')]"
           },
           "eventHubsConnectionString": {
-            "value": "[if(parameters('createEventHubs'), concat('Endpoint=sb://', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.endpoint.value, ';EntityPath=', parameters('eventHubsName'), ';SharedAccessKeyName=', parameters('eventHubsSendPolicyName'), ';SharedAccessKey=', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.sendKey.value), '')]"
+            "value": "[if(parameters('createEventHubs'), concat('Endpoint=sb://', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.endpoint.value, ';EntityPath=', parameters('eventHubsName'), ';SharedAccessKeyName=', parameters('eventHubsSendPolicyName'), ';SharedAccessKey=', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.instanceSendKey.value), '')]"
           },
           "eventHubsEndpointName": {
             "value": "[parameters('eventHubsEndpointName')]"
@@ -940,7 +940,7 @@
             },
             {
               "name": "EventHubConnectionString",
-              "value": "[if(parameters('createEventHubs'), concat('Endpoint=sb://', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.endpoint.value, ';SharedAccessKeyName=', parameters('eventHubsListenPolicyName'), ';SharedAccessKey=', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.listenKey.value), '')]"
+              "value": "[if(parameters('createEventHubs'), concat('Endpoint=sb://', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.endpoint.value, ';SharedAccessKeyName=', parameters('eventHubsListenPolicyName'), ';SharedAccessKey=', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.namespaceListenKey.value), '')]"
             },
             {
               "name": "CompressForUpload",
@@ -1017,13 +1017,17 @@
       "type": "string",
       "value": "[if(parameters('createEventHubs'), reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.instanceResourceId.value, '')]"
     },
-    "eventHubsListenConnectionString": {
+    "eventHubsEndpoint": {
       "type": "string",
-      "value": "[if(parameters('createEventHubs'), concat('Endpoint=sb://', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.endpoint.value, ';SharedAccessKeyName=', parameters('eventHubsListenPolicyName'), ';SharedAccessKey=', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.listenKey.value), '')]"
+      "value": "[if(parameters('createEventHubs'), reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.endpoint.value, '')]"
     },
-    "eventHubsSendConnectionString": {
+    "eventHubsListenKey": {
       "type": "string",
-      "value": "[if(parameters('createEventHubs'), concat('Endpoint=sb://', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.endpoint.value, ';SharedAccessKeyName=', parameters('eventHubsSendPolicyName'), ';SharedAccessKey=', reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.sendKey.value), '')]"
+      "value": "[if(parameters('createEventHubs'), reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.namespaceListenKey.value, '')]"
+    },
+    "eventHubsSendKey": {
+      "type": "string",
+      "value": "[if(parameters('createEventHubs'), reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.instanceSendKey.value, '')]"
     }
   }
 }

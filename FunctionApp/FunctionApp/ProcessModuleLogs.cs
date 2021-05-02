@@ -27,33 +27,33 @@ namespace FunctionApp
         
         [FunctionName("ProcessModuleLogs")]
         public static async Task Run(
-            [BlobTrigger("%ContainerName%/{blobName}.json", Connection = "StorageConnectionString")] Stream myBlob,
-            string blobName,
-            //[QueueTrigger("%QueueName%", Connection = "StorageConnectionString")] string queueItem,
+            //[BlobTrigger("%ContainerName%/{blobName}.json", Connection = "StorageConnectionString")] Stream myBlob,
+            //string blobName,
+            [QueueTrigger("%QueueName%", Connection = "StorageConnectionString")] string queueItem,
             ILogger log)
         {
             try
             {
                 #region Queue trigger
-                //JObject storageEvent = JsonConvert.DeserializeObject<JObject>(queueItem);
-                //var match = Regex.Match(storageEvent["subject"].ToString(), "/blobServices/default/containers/(.*)/blobs/(.*)", RegexOptions.IgnoreCase);
-                //if (!match.Success)
-                //{
-                //    log.LogWarning($"Unable to parse blob Url from {storageEvent["subject"]}");
-                //    return;
-                //}
+                JObject storageEvent = JsonConvert.DeserializeObject<JObject>(queueItem);
+                var match = Regex.Match(storageEvent["subject"].ToString(), "/blobServices/default/containers/(.*)/blobs/(.*)", RegexOptions.IgnoreCase);
+                if (!match.Success)
+                {
+                    log.LogWarning($"Unable to parse blob Url from {storageEvent["subject"]}");
+                    return;
+                }
 
-                //if (!string.Equals(match.Groups[1].Value, _containerName))
-                //{
-                //    log.LogDebug($"Ignoring queue item because it is related to container '{match.Groups[1].Value}'");
-                //    return;
-                //}
+                if (!string.Equals(match.Groups[1].Value, _containerName))
+                {
+                    log.LogDebug($"Ignoring queue item because it is related to container '{match.Groups[1].Value}'");
+                    return;
+                }
 
-                //string blobName = match.Groups[2].Value;
+                string blobName = match.Groups[2].Value;
                 #endregion
 
                 #region blob trigger (debugging)
-                blobName += ".json";
+                //blobName += ".json";
                 #endregion
 
                 log.LogInformation($"ProcessModuleLogs function received a new queue message from blob {blobName}");
@@ -104,11 +104,11 @@ namespace FunctionApp
                     try
                     {
                         //logAnalytics.Post(JsonConvert.SerializeObject(logsChunk), _logType, _hubResourceId);
-                        bool success = await logAnalytics.PostToCustomTableAsync(JsonConvert.SerializeObject(logsChunk), _logType, _hubResourceId, _compressForUpload);
+                        bool success = logAnalytics.PostToCustomTable(JsonConvert.SerializeObject(logsChunk), _logType, _hubResourceId);
                         if (success)
-                            log.LogInformation("ProcessModuleLogs completed a request successfully");
+                            log.LogInformation("ProcessModuleLogs request to log analytics completed successfully");
                         else
-                            log.LogError("ProcessModuleLogs failed to post custom logs");
+                            log.LogError("ProcessModuleLogs request to log analytics failed");
                     }
                     catch (Exception e)
                     {
