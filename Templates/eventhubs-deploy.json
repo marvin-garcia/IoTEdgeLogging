@@ -97,11 +97,12 @@
     "variables": {
         "NamespaceId": "[resourceId('Microsoft.EventHub/namespaces', parameters('namespaceName'))]",
         "instanceId": "[resourceId('Microsoft.EventHub/namespaces/eventhubs', parameters('namespaceName'), parameters('eventHubsName'))]",
-        "listenRuleId": "[resourceId('Microsoft.EventHub/namespaces/AuthorizationRules', parameters('namespaceName'), parameters('listenPolicyName'))]",
-        "sendRuleId": "[resourceId('Microsoft.EventHub/namespaces/AuthorizationRules', parameters('namespaceName'), parameters('sendPolicyName'))]",
+        "namespaceListenRuleId": "[resourceId('Microsoft.EventHub/namespaces/AuthorizationRules', parameters('namespaceName'), parameters('listenPolicyName'))]",
+        "instanceSendRuleId": "[resourceId('Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules', parameters('namespaceName'), parameters('eventHubsName'), parameters('sendPolicyName'))]",
         "namespaceApiVersion": "[providers('Microsoft.EventHub', 'namespaces').apiVersions[0]]",
-        "eventHubsApiVersion": "[providers('Microsoft.EventHub', 'namespaces/eventhubs').apiVersions[0]]",
-        "authRulesApiVersion": "[providers('Microsoft.EventHub', 'namespaces/authorizationRules').apiVersions[0]]"
+        "namespaceAuthRulesApiVersion": "[providers('Microsoft.EventHub', 'namespaces/authorizationRules').apiVersions[0]]",
+        "instanceApiVersion": "[providers('Microsoft.EventHub', 'namespaces/eventhubs').apiVersions[0]]",
+        "instanceAuthRulesApiVersion": "[providers('Microsoft.EventHub', 'namespaces/eventhubs/authorizationRules').apiVersions[0]]"
     },
     "resources": [
         {
@@ -140,11 +141,25 @@
             }
         },
         {
-            "comments": "Azure Event hub authorization rule to listen to events",
-            "type": "Microsoft.EventHub/namespaces/AuthorizationRules",
-            "apiVersion": "[variables('authRulesApiVersion')]",
-            "name": "[concat(parameters('namespaceName'), '/', parameters('listenPolicyName'))]",
+            "comments": "Azure Event Hub for collected metrics",
+            "type": "Microsoft.EventHub/namespaces/eventhubs",
+            "name": "[concat(parameters('namespaceName'), '/', parameters('eventHubsName'))]",
+            "apiVersion": "[variables('instanceApiVersion')]",
             "location": "[parameters('location')]",
+            "dependsOn": [
+                "[if(parameters('createNamespace'), variables('NamespaceId'), 'ehDummyTemplate')]"
+            ],
+            "properties": {
+                "messageRetentionInDays": "[parameters('retentionInDays')]",
+                "partitionCount": "[parameters('partitionCount')]",
+                "status": "Active"
+            }
+        },
+        {
+            "comments": "azure Event Hub namespace listen authorization rule",
+            "type": "Microsoft.EventHub/namespaces/authorizationRules",
+            "name": "[concat(parameters('namespaceName'), '/', parameters('listenPolicyName'))]",
+            "apiVersion": "[variables('namespaceAuthRulesApiVersion')]",
             "dependsOn": [
                 "[if(parameters('createNamespace'), variables('NamespaceId'), 'ehDummyTemplate')]"
             ],
@@ -155,33 +170,17 @@
             }
         },
         {
-            "comments": "Azure Event hub authorization rule to send events",
-            "type": "Microsoft.EventHub/namespaces/AuthorizationRules",
-            "apiVersion": "[variables('authRulesApiVersion')]",
-            "name": "[concat(parameters('namespaceName'), '/', parameters('sendPolicyName'))]",
-            "location": "[parameters('location')]",
+            "comments": "azure Event Hub instance send authorization rule",
+            "type": "Microsoft.EventHub/namespaces/eventhubs/authorizationRules",
+            "name": "[concat(parameters('namespaceName'), '/', parameters('eventHubsName'), parameters('sendPolicyName'))]",
+            "apiVersion": "[variables('instanceAuthRulesApiVersion')]",
             "dependsOn": [
-                "[if(parameters('createNamespace'), variables('NamespaceId'), 'ehDummyTemplate')]"
+                "[variables('instanceId')]"
             ],
             "properties": {
                 "rights": [
                     "Send"
                 ]
-            }
-        },
-        {
-            "comments": "Azure Event Hub for collected metrics",
-            "type": "Microsoft.EventHub/namespaces/eventhubs",
-            "name": "[concat(parameters('namespaceName'), '/', parameters('eventHubsName'))]",
-            "apiVersion": "[variables('eventHubsApiVersion')]",
-            "location": "[parameters('location')]",
-            "dependsOn": [
-                "[if(parameters('createNamespace'), variables('NamespaceId'), 'ehDummyTemplate')]"
-            ],
-            "properties": {
-                "messageRetentionInDays": "[parameters('retentionInDays')]",
-                "partitionCount": "[parameters('partitionCount')]",
-                "status": "Active"
             }
         }
     ],
@@ -196,15 +195,15 @@
         },
         "endpoint": {
             "type": "string",
-            "value": "[split(split(reference(variables('NamespaceId'), variables('namespaceApiVersion')).serviceBusEndpoint, '://')[1], ':')[0]]"
+            "value": "[split(split(split(reference(variables('NamespaceId'), variables('namespaceApiVersion')).serviceBusEndpoint, '://')[1], ':')[0], '/')[0]]"
         },
-        "listenKey": {
+        "namespaceListenKey": {
             "type": "string",
-            "value": "[listKeys(variables('listenRuleId'), variables('authRulesApiVersion')).primaryKey]"
+            "value": "[listKeys(variables('namespaceListenRuleId'), variables('namespaceAuthRulesApiVersion')).primaryKey]"
         },
-        "sendKey": {
+        "instanceSendKey": {
             "type": "string",
-            "value": "[listKeys(variables('sendRuleId'), variables('authRulesApiVersion')).primaryKey]"
+            "value": "[listKeys(variables('instanceSendRuleId'), variables('instanceAuthRulesApiVersion')).primaryKey]"
         }
     }
 }
