@@ -387,6 +387,7 @@ function New-IoTEnvironment()
         $metrics_options = @("Yes", "No")
         Write-Host
         Write-Host "In addition to logging, this solution can enable IoT Edge monitoring with Azure Monitor. It will let you monitor your edge fleet at scale by using Azure Monitor to collect, store, visualize and generate alerts from metrics emitted by the IoT Edge runtime."
+        Write-Host
         Write-Host "Do you want to enable IoT Edge monitoring? Choose an option from the list (using its Index):"
         for ($index = 0; $index -lt $metrics_options.Count; $index++)
         {
@@ -507,6 +508,7 @@ function New-IoTEnvironment()
                         Write-Host "Choose an event hubs namespace to use from this list (using its Index):"
                         for ($index = 0; $index -lt $event_hubs_namespaces.Count; $index++)
                         {
+                            Write-Host
                             Write-Host "$($index + 1): $($event_hubs_namespaces[$index].id)"
                         }
                         while ($true)
