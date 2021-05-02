@@ -172,7 +172,7 @@
         {
             "comments": "azure Event Hub instance send authorization rule",
             "type": "Microsoft.EventHub/namespaces/eventhubs/authorizationRules",
-            "name": "[concat(parameters('namespaceName'), '/', parameters('eventHubsName'), parameters('sendPolicyName'))]",
+            "name": "[concat(parameters('namespaceName'), '/', parameters('eventHubsName'), '/', parameters('sendPolicyName'))]",
             "apiVersion": "[variables('instanceAuthRulesApiVersion')]",
             "dependsOn": [
                 "[variables('instanceId')]"
