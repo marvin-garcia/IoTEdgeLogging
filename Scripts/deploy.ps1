@@ -36,7 +36,7 @@ function New-IoTEnvironment()
     Write-Host "################################################"
     Write-Host "################################################"
     Write-Host "####                                        ####"
-    Write-Host "#### IoT Edge logging & monitoring solution ####"
+    Write-Host "#### IoT Edge Logging & Monitoring Solution ####"
     Write-Host "####                                        ####"
     Write-Host "################################################"
     Write-Host "################################################"
@@ -44,8 +44,7 @@ function New-IoTEnvironment()
     Start-Sleep -Milliseconds 1500
 
     Write-Host
-    Write-Host "This deployment script will help you deploy the IoT Edge logging & monitoring solution in your Azure subscription."
-    Write-Host "It can be deployed as a sandbox environment, with a new IoT hub and a test IoT Edge device generating sample logs and collecting monitoring metrics, or it can connect to your existing IoT Hub and Log analytics workspace."
+    Write-Host "Welcome to IoT ELMS (Edge Logging & Monitoring Solution). This deployment script will help you deploy IoT ELMS in your Azure subscription. It can be deployed as a sandbox environment, with a new IoT hub and a test IoT Edge device generating sample logs and collecting monitoring metrics, or it can connect to your existing IoT Hub and Log analytics workspace."
     Write-Host
     Write-Host "Press Enter to continue."
     Read-Host
@@ -68,7 +67,7 @@ function New-IoTEnvironment()
         $resource_group = Read-Host -Prompt ">"
     }
 
-    $resourceGroup = az group show --name $resource_group | ConvertFrom-Json
+    $resourceGroup = az group list | ConvertFrom-Json | Where-Object { $_.name -eq $resource_group }
     if (!$resourceGroup)
     {
         Write-Host "Resource group '$resource_group' does not exist. It will be created later in the deployment."
@@ -79,50 +78,61 @@ function New-IoTEnvironment()
     }
     #endregion
 
-    #region iot hub details
-    $iot_hubs = az iot hub list | ConvertFrom-Json | Sort-Object -Property id
-    if ($iot_hubs.Count -gt 0)
+    #region deployment option
+    $deployment_options = @("Create a sandbox environment for testing (fastest)", "Use existing resources (most flexible)")
+    Write-Host
+    Write-Host "Choose a deployment option from the list (using its Index):"
+    for ($index = 0; $index -lt $deployment_options.Count; $index++)
     {
-        $iot_hub_options = @("Create new IoT hub", "Use existing IoT hub")
-        Write-Host
-        Write-Host "Choose an option from the list for the IoT hub (using its Index):"
-        for ($index = 0; $index -lt $iot_hub_options.Count; $index++)
+        Write-Host "$($index + 1): $($deployment_options[$index])"
+    }
+    while ($true)
+    {
+        $deployment_option = Read-Host -Prompt ">"
+        try
         {
-            Write-Host "$($index + 1): $($iot_hub_options[$index])"
+            if ([int]$deployment_option -ge 1 -and [int]$deployment_option -le $deployment_options.Count)
+            {
+                break
+            }
         }
-        while ($true)
+        catch
         {
-            $option = Read-Host -Prompt ">"
-            try
-            {
-                if ([int]$option -ge 1 -and [int]$option -le $iot_hub_options.Count)
-                {
-                    break
-                }
-            }
-            catch
-            {
-                Write-Host "Invalid index '$($option)' provided."
-            }
-            Write-Host "Choose from the list using an index between 1 and $($iot_hub_options.Count)."
+            Write-Host "Invalid index '$($deployment_option)' provided."
         }
+        Write-Host "Choose from the list using an index between 1 and $($deployment_options.Count)."
+    }
+    #endregion
 
-        #region choose existing iot hub
-        if ($option -eq 2)
+    if ($deployment_option -eq 1)
+    {
+        $ask_for_location = $true
+
+        $create_iot_hub = $true
+        $create_storage = $true
+        $create_event_grid = $true
+        $create_workspace = $true
+        $enable_monitoring = $true
+    }
+    else
+    {
+        #region iot hub
+        $iot_hubs = az iot hub list | ConvertFrom-Json | Sort-Object -Property id
+        if ($iot_hubs.Count -gt 0)
         {
+            $iot_hub_options = @("Create new IoT hub", "Use existing IoT hub")
             Write-Host
-            Write-Host "Choose an IoT hub to use from this list (using its Index):"
-            for ($index = 0; $index -lt $iot_hubs.Count; $index++)
+            Write-Host "Choose an option from the list for the IoT hub (using its Index):"
+            for ($index = 0; $index -lt $iot_hub_options.Count; $index++)
             {
-                Write-Host
-                Write-Host "$($index + 1): $($iot_hubs[$index].id)"
+                Write-Host "$($index + 1): $($iot_hub_options[$index])"
             }
             while ($true)
             {
                 $option = Read-Host -Prompt ">"
                 try
                 {
-                    if ([int]$option -ge 1 -and [int]$option -le $iot_hubs.Count)
+                    if ([int]$option -ge 1 -and [int]$option -le $iot_hub_options.Count)
                     {
                         break
                     }
@@ -131,156 +141,255 @@ function New-IoTEnvironment()
                 {
                     Write-Host "Invalid index '$($option)' provided."
                 }
-                Write-Host "Choose from the list using an index between 1 and $($iot_hubs.Count)."
+                Write-Host "Choose from the list using an index between 1 and $($iot_hub_options.Count)."
             }
 
-            $iot_hub_name = $iot_hubs[$option - 1].name
-            $iot_hub_resource_group = $iot_hubs[$option - 1].resourcegroup
-            $location = $iot_hubs[$option - 1].location
-            $iot_hub_location = $location
-
-            # handle IoT hub service policy
-            $iot_hub_policies = az iot hub policy list --hub-name $iot_hub_name | ConvertFrom-Json
-            $iot_hub_policy = $iot_hub_policies | Where-Object { $_.rights -like '*serviceconnect*' -and $_.rights -like '*registryread*' }
-            if ($null -eq $iot_hub_policy)
+            #region choose existing iot hub
+            if ($option -eq 2)
             {
-                $iot_hub_policy_name = "iotedgelogs"
                 Write-Host
-                Write-Host "Creating IoT hub shared access policy '$($iot_hub_policy_name)' with permissions 'RegistryRead ServiceConnect'"
-                az iot hub policy create --hub-name $iot_hub_name --name $iot_hub_policy_name --permissions RegistryRead ServiceConnect
+                Write-Host "Choose an IoT hub to use from this list (using its Index):"
+                for ($index = 0; $index -lt $iot_hubs.Count; $index++)
+                {
+                    Write-Host
+                    Write-Host "$($index + 1): $($iot_hubs[$index].id)"
+                }
+                while ($true)
+                {
+                    $option = Read-Host -Prompt ">"
+                    try
+                    {
+                        if ([int]$option -ge 1 -and [int]$option -le $iot_hubs.Count)
+                        {
+                            break
+                        }
+                    }
+                    catch
+                    {
+                        Write-Host "Invalid index '$($option)' provided."
+                    }
+                    Write-Host "Choose from the list using an index between 1 and $($iot_hubs.Count)."
+                }
+
+                $iot_hub_name = $iot_hubs[$option - 1].name
+                $iot_hub_resource_group = $iot_hubs[$option - 1].resourcegroup
+                $location = $iot_hubs[$option - 1].location
+                $iot_hub_location = $location
+
+                # handle IoT hub service policy
+                $iot_hub_policies = az iot hub policy list --hub-name $iot_hub_name | ConvertFrom-Json
+                $iot_hub_policy = $iot_hub_policies | Where-Object { $_.rights -like '*serviceconnect*' -and $_.rights -like '*registryread*' }
+                if ($null -eq $iot_hub_policy)
+                {
+                    $iot_hub_policy_name = "iotedgelogs"
+                    Write-Host
+                    Write-Host "Creating IoT hub shared access policy '$($iot_hub_policy_name)' with permissions 'RegistryRead ServiceConnect'"
+                    az iot hub policy create --hub-name $iot_hub_name --name $iot_hub_policy_name --permissions RegistryRead ServiceConnect
+                }
+                else
+                {
+                    $iot_hub_policy_name = $iot_hub_policy.keyName
+                    Write-Host
+                    Write-Host "Deployment will use existing IoT hub shared access policy '$($iot_hub_policy_name)'"
+                }
+
+                $logs_regex = ".*"
+                Write-Host
+                Write-Host -ForegroundColor Yellow "IMPORTANT: ELMS will be configured to capture all logs from the edge modules. To change this behavior, you can go to the Configuration section of the Function App '$($function_app_name)' and update the regular expression for the app setting 'LogsRegex'."
+                
+                Start-Sleep -Milliseconds 1500
+
+                Write-Host
+                Write-Host -ForegroundColor Yellow "IMPORTANT: You must update device twin for your IoT edge devices with `"$($deployment_condition)`" to collect logs from their modules."
+                
+                Start-Sleep -Milliseconds 1500
+                
+                Write-Host
+                Write-Host "Press Enter to continue."
+                Read-Host
             }
+            #endregion
             else
             {
-                $iot_hub_policy_name = $iot_hub_policy.keyName
-                Write-Host
-                Write-Host "Deployment will use existing IoT hub shared access policy '$($iot_hub_policy_name)'"
+                $create_iot_hub = $true
+                $ask_for_location = $true
             }
         }
-        #endregion
         else
         {
             $create_iot_hub = $true
             $ask_for_location = $true
         }
-    }
-    else
-    {
-        $create_iot_hub = $true
-        $ask_for_location = $true
+        #endregion
+
+        #region storage account
+        $storage_accounts = az storage account list | ConvertFrom-Json | Sort-Object -Property id
+        if ($storage_accounts.Count -gt 0)
+        {
+            $storage_options = @("Create new storage account", "Use existing storage account")
+            Write-Host
+            Write-Host "Choose an option from the list for the storage account to store log files (using its Index):"
+            for ($index = 0; $index -lt $storage_options.Count; $index++)
+            {
+                Write-Host "$($index + 1): $($storage_options[$index])"
+            }
+            while ($true)
+            {
+                $option = Read-Host -Prompt ">"
+                try
+                {
+                    if ([int]$option -ge 1 -and [int]$option -le $storage_options.Count)
+                    {
+                        break
+                    }
+                }
+                catch
+                {
+                    Write-Host "Invalid index '$($option)' provided."
+                }
+                Write-Host "Choose from the list using an index between 1 and $($storage_options.Count)."
+            }
+
+            #region existing storage account
+            if ($option -eq 2)
+            {
+                Write-Host
+                Write-Host "Choose a storage account to use from this list (using its Index):"
+                for ($index = 0; $index -lt $storage_accounts.Count; $index++)
+                {
+                    Write-Host
+                    Write-Host "$($index + 1): $($storage_accounts[$index].id)"
+                }
+                while ($true)
+                {
+                    $option = Read-Host -Prompt ">"
+                    try
+                    {
+                        if ([int]$option -ge 1 -and [int]$option -le $storage_accounts.Count)
+                        {
+                            break
+                        }
+                    }
+                    catch
+                    {
+                        Write-Host "Invalid index '$($option)' provided."
+                    }
+                    Write-Host "Choose from the list using an index between 1 and $($storage_accounts.Count)."
+                }
+
+                $storage_account_id = $storage_accounts[$option - 1].id
+                $storage_account_name = $storage_accounts[$option - 1].name
+                $storage_account_resource_group = $storage_accounts[$option - 1].resourceGroup
+                $storage_account_location = $storage_accounts[$option - 1].location
+
+                #region system event grid
+                $system_topics = az eventgrid system-topic list | ConvertFrom-Json
+                $system_topic = $system_topics | Where-Object { $_.source -eq $storage_account_id }
+                if (!!$system_topic)
+                {
+                    $system_topic_name = $system_topic.name
+                    Write-Host
+                    Write-Host "Deployment will use existing event grid system topic '$($system_topic_name)'"
+                }
+                else
+                {
+                    $create_event_grid = $true
+                }
+                #endregion
+            }
+            #endregion
+            else
+            {
+                $create_storage = $true
+                $create_event_grid = $true
+            }
+        }
+        else
+        {
+            $create_storage = $true
+            $create_event_grid = $true
+        }
+        #endregion
+
+        #region log analytics
+        $workspaces = az monitor log-analytics workspace list | ConvertFrom-Json | Sort-Object -Property id
+        if ($workspaces.Count -gt 0)
+        {
+            $workspace_options = @("Create new log analytics workspace", "Use existing log analytics workspace")
+            Write-Host
+            Write-Host "Choose an option from the list for the Log Analytics workspace to connect to (using its Index):"
+            for ($index = 0; $index -lt $workspace_options.Count; $index++)
+            {
+                Write-Host "$($index + 1): $($workspace_options[$index])"
+            }
+            while ($true)
+            {
+                $option = Read-Host -Prompt ">"
+                try
+                {
+                    if ([int]$option -ge 1 -and [int]$option -le $workspace_options.Count)
+                    {
+                        break
+                    }
+                }
+                catch
+                {
+                    Write-Host "Invalid index '$($option)' provided."
+                }
+                Write-Host "Choose from the list using an index between 1 and $($workspace_options.Count)."
+            }
+
+            #region existing workspace
+            if ($option -eq 2)
+            {
+                Write-Host
+                Write-Host "Choose a log analytics workspace to use from this list (using its Index):"
+                for ($index = 0; $index -lt $workspaces.Count; $index++)
+                {
+                    Write-Host
+                    Write-Host "$($index + 1): $($workspaces[$index].id)"
+                }
+                while ($true)
+                {
+                    $option = Read-Host -Prompt ">"
+                    try
+                    {
+                        if ([int]$option -ge 1 -and [int]$option -le $workspaces.Count)
+                        {
+                            break
+                        }
+                    }
+                    catch
+                    {
+                        Write-Host "Invalid index '$($option)' provided."
+                    }
+                    Write-Host "Choose from the list using an index between 1 and $($workspaces.Count)."
+                }
+
+                $workspace_name = $workspaces[$option - 1].name
+                $workspace_resource_group = $workspaces[$option - 1].resourceGroup
+                $workspace_location = $workspaces[$option - 1].location
+            }
+            #endregion
+            else
+            {
+                $create_workspace = $true
+            }
+        }
+        else
+        {
+            $create_workspace = $true
+        }
+        #endregion
     }
 
+    #region new resources details
     if ($create_iot_hub)
     {
         $iot_hub_name_prefix = "iothub"
         $iot_hub_name = "$($iot_hub_name_prefix)-$($env_hash)"
         $iot_hub_resource_group = $resource_group
         $iot_hub_policy_name = "iotedgelogs"
-    }
-    else
-    {
-        $logs_regex = ".*"
-        Write-Host
-        Write-Host -ForegroundColor Yellow "IMPORTANT: The solution will be configured to capture all logs from the edge modules. To change this behavior, you can go to the Configuration section of the Function App '$($function_app_name)' and update the regular expression for the app setting 'LogsRegex'."
-        
-        Start-Sleep -Milliseconds 1500
-
-        Write-Host
-        Write-Host -ForegroundColor Yellow "IMPORTANT: You must update device twin for your IoT edge devices with `"$($deployment_condition)`" to collect logs from their modules."
-        
-        Start-Sleep -Milliseconds 1500
-        
-        Write-Host
-        Write-Host "Press Enter to continue."
-        Read-Host
-    }
-    #endregion
-
-    #region storage account
-    $storage_accounts = az storage account list | ConvertFrom-Json | Sort-Object -Property id
-    if ($storage_accounts.Count -gt 0)
-    {
-        $storage_options = @("Create new storage account", "Use existing storage account")
-        Write-Host
-        Write-Host "Choose an option from the list for the storage account to store log files (using its Index):"
-        for ($index = 0; $index -lt $storage_options.Count; $index++)
-        {
-            Write-Host "$($index + 1): $($storage_options[$index])"
-        }
-        while ($true)
-        {
-            $option = Read-Host -Prompt ">"
-            try
-            {
-                if ([int]$option -ge 1 -and [int]$option -le $storage_options.Count)
-                {
-                    break
-                }
-            }
-            catch
-            {
-                Write-Host "Invalid index '$($option)' provided."
-            }
-            Write-Host "Choose from the list using an index between 1 and $($storage_options.Count)."
-        }
-
-        #region existing storage account
-        if ($option -eq 2)
-        {
-            Write-Host
-            Write-Host "Choose a storage account to use from this list (using its Index):"
-            for ($index = 0; $index -lt $storage_accounts.Count; $index++)
-            {
-                Write-Host
-                Write-Host "$($index + 1): $($storage_accounts[$index].id)"
-            }
-            while ($true)
-            {
-                $option = Read-Host -Prompt ">"
-                try
-                {
-                    if ([int]$option -ge 1 -and [int]$option -le $storage_accounts.Count)
-                    {
-                        break
-                    }
-                }
-                catch
-                {
-                    Write-Host "Invalid index '$($option)' provided."
-                }
-                Write-Host "Choose from the list using an index between 1 and $($storage_accounts.Count)."
-            }
-
-            $storage_account_id = $storage_accounts[$option - 1].id
-            $storage_account_name = $storage_accounts[$option - 1].name
-            $storage_account_resource_group = $storage_accounts[$option - 1].resourceGroup
-            $storage_account_location = $storage_accounts[$option - 1].location
-
-            #region system event grid
-            $system_topics = az eventgrid system-topic list | ConvertFrom-Json
-            $system_topic = $system_topics | Where-Object { $_.source -eq $storage_account_id }
-            if (!!$system_topic)
-            {
-                $system_topic_name = $system_topic.name
-                Write-Host
-                Write-Host "Deployment will use existing event grid system topic '$($system_topic_name)'"
-            }
-            else
-            {
-                $create_event_grid = $true
-            }
-            #endregion
-        }
-        #endregion
-        else
-        {
-            $create_storage = $true
-            $create_event_grid = $true
-        }
-    }
-    else
-    {
-        $create_storage = $true
-        $create_event_grid = $true
     }
 
     if ($create_storage)
@@ -289,85 +398,14 @@ function New-IoTEnvironment()
         $storage_account_resource_group = $resource_group
     }
 
+    $storage_container_name = "modulelogs$($env_hash)"
+    $storage_queue_name = "modulelogs$($env_hash)"
+
     if ($create_event_grid)
     {
         $system_topic_name = "iotedgelogs-$($env_hash)"
     }
     
-    $storage_container_name = "modulelogs$($env_hash)"
-    $storage_queue_name = "modulelogs$($env_hash)"
-    #endregion
-
-    #region log analytics workspace
-    $workspaces = az monitor log-analytics workspace list | ConvertFrom-Json | Sort-Object -Property id
-    if ($workspaces.Count -gt 0)
-    {
-        $workspace_options = @("Create new log analytics workspace", "Use existing log analytics workspace")
-        Write-Host
-        Write-Host "Choose an option from the list for the Log Analytics workspace to connect to (using its Index):"
-        for ($index = 0; $index -lt $workspace_options.Count; $index++)
-        {
-            Write-Host "$($index + 1): $($workspace_options[$index])"
-        }
-        while ($true)
-        {
-            $option = Read-Host -Prompt ">"
-            try
-            {
-                if ([int]$option -ge 1 -and [int]$option -le $workspace_options.Count)
-                {
-                    break
-                }
-            }
-            catch
-            {
-                Write-Host "Invalid index '$($option)' provided."
-            }
-            Write-Host "Choose from the list using an index between 1 and $($workspace_options.Count)."
-        }
-
-        #region existing workspace
-        if ($option -eq 2)
-        {
-            Write-Host
-            Write-Host "Choose a log analytics workspace to use from this list (using its Index):"
-            for ($index = 0; $index -lt $workspaces.Count; $index++)
-            {
-                Write-Host
-                Write-Host "$($index + 1): $($workspaces[$index].id)"
-            }
-            while ($true)
-            {
-                $option = Read-Host -Prompt ">"
-                try
-                {
-                    if ([int]$option -ge 1 -and [int]$option -le $workspaces.Count)
-                    {
-                        break
-                    }
-                }
-                catch
-                {
-                    Write-Host "Invalid index '$($option)' provided."
-                }
-                Write-Host "Choose from the list using an index between 1 and $($workspaces.Count)."
-            }
-
-            $workspace_name = $workspaces[$option - 1].name
-            $workspace_resource_group = $workspaces[$option - 1].resourceGroup
-            $workspace_location = $workspaces[$option - 1].location
-        }
-        #endregion
-        else
-        {
-            $create_workspace = $true
-        }
-    }
-    else
-    {
-        $create_workspace = $true
-    }
-
     if ($create_workspace)
     {
         $workspace_name = "iotedgelogging-$($env_hash)"
@@ -380,13 +418,13 @@ function New-IoTEnvironment()
     {
         $enable_monitoring = $true
         Write-Host
-        Write-Host "In addition to logging, this solution will enable IoT Edge monitoring with Azure Monitor. It will let you monitor your edge fleet at scale by using Azure Monitor to collect, store, visualize and generate alerts from metrics emitted by the IoT Edge runtime."
+        Write-Host "In addition to logging, ELMS will enable IoT Edge monitoring with Azure Monitor. It will let you monitor your edge fleet at scale by using Azure Monitor to collect, store, visualize and generate alerts from metrics emitted by the IoT Edge runtime."
     }
     else
     {
         $metrics_options = @("Yes", "No")
         Write-Host
-        Write-Host "In addition to logging, this solution can enable IoT Edge monitoring with Azure Monitor. It will let you monitor your edge fleet at scale by using Azure Monitor to collect, store, visualize and generate alerts from metrics emitted by the IoT Edge runtime."
+        Write-Host "In addition to logging, ELMS can enable IoT Edge monitoring with Azure Monitor. It will let you monitor your edge fleet at scale by using Azure Monitor to collect, store, visualize and generate alerts from metrics emitted by the IoT Edge runtime."
         Write-Host
         Write-Host "Do you want to enable IoT Edge monitoring? Choose an option from the list (using its Index):"
         for ($index = 0; $index -lt $metrics_options.Count; $index++)
