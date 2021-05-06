@@ -786,7 +786,7 @@ function New-IoTEnvironment()
     az functionapp config appsettings set `
         --name $function_app_name `
         --resource-group $resource_group `
-        --settings "HostUrl=https://$($function_app_hostname)" "HostKey=$($function_key)"
+        --settings "HostUrl=https://$($function_app_hostname)" "HostKey=$($function_key)" | Out-Null
     #endregion
 
     #region generate monitoring deployment manifest
