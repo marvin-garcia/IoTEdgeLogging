@@ -21,14 +21,13 @@ namespace FunctionApp
         private static string _workspaceId = Environment.GetEnvironmentVariable("WorkspaceId");
         private static string _workspaceKey = Environment.GetEnvironmentVariable("WorkspaceKey");
         private static string _workspaceApiVersion = Environment.GetEnvironmentVariable("WorkspaceApiVersion");
+        private static string _logsEncoding = Environment.GetEnvironmentVariable("LogsEncoding");
         private static string _logType = Environment.GetEnvironmentVariable("LogType");
         private static int _logMaxSizeMB = Convert.ToInt32(Environment.GetEnvironmentVariable("LogsMaxSizeMB"));
         private static bool _compressForUpload = Convert.ToBoolean(Environment.GetEnvironmentVariable("CompressForUpload"));
         
         [FunctionName("ProcessModuleLogs")]
         public static async Task Run(
-            //[BlobTrigger("%ContainerName%/{blobName}.json", Connection = "StorageConnectionString")] Stream myBlob,
-            //string blobName,
             [QueueTrigger("%QueueName%", Connection = "StorageConnectionString")] string queueItem,
             ILogger log)
         {
@@ -52,10 +51,6 @@ namespace FunctionApp
                 string blobName = match.Groups[2].Value;
                 #endregion
 
-                #region blob trigger (debugging)
-                //blobName += ".json";
-                #endregion
-
                 log.LogInformation($"ProcessModuleLogs function received a new queue message from blob {blobName}");
                 
                 // Create a BlobServiceClient object which will be used to create a container client
@@ -69,6 +64,13 @@ namespace FunctionApp
 
                 // Read the blob's contents
                 Stream blobStream = await blobClient.OpenReadAsync();
+                
+                // Decompress if encoding is gzip
+                if (string.Equals(_logsEncoding, "gzip", StringComparison.OrdinalIgnoreCase))
+                {
+                    // TODO: decompress logs
+                }
+
                 StreamReader reader = new StreamReader(blobStream);
                 IoTEdgeLog[] iotEdgeLogs = JsonConvert.DeserializeObject<IoTEdgeLog[]>(reader.ReadToEnd());
 
@@ -118,6 +120,9 @@ namespace FunctionApp
                     count += steps;
                 }
                 while (count < iotEdgeLogs.Length);
+
+                // Delete blob after being processed
+                await containerClient.DeleteBlobAsync(blobName);
             }
             catch (Exception e)
             {
