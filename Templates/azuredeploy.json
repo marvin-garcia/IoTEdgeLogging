@@ -425,6 +425,13 @@
         "description": "Name for the Function App resource."
       }
     },
+    "httpTriggerFunction": {
+      "type": "string",
+      "defaultValue": "InvokeUploadModuleLogs",
+      "metadata": {
+        "description": "Name of the Http trigger function to schedule module logs upload."
+      }
+    },
     "moduleIdRegex": {
       "type": "string",
       "defaultValue": ".*",
@@ -453,6 +460,17 @@
         "description": "Only retrieve logs since this time, as a duration (1d, 90m, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp."
       }
     },
+    "logsEncoding": {
+      "type": "string",
+      "defaultValue": "none",
+      "allowedValues": [
+        "none",
+        "gzip"
+      ],
+      "metadata": {
+        "description": "Logs encoding format."
+      }
+    },
     "templateUrl": {
       "type": "string",
       "defaultValue": "https://raw.githubusercontent.com/marvin-garcia/IoTEdgeLogging",
@@ -477,6 +495,9 @@
     "functionAppHostingPlanName": "[concat(parameters('functionAppName'), '-plan')]",
     "functionStorageAccountName": "[concat(uniquestring(resourceGroup().id), 'function')]",
     "functionStorageAccountSku": "Standard_LRS",
+    "functionFileShareName": "[substring(replace(concat(toLower(parameters('functionAppName')), parameters('environmentHashId')), '-', ''), 0, 25)]",
+    "functionAppResourceId": "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]",
+    "functionApiVersion": "2018-11-01",
     "appInsightsName": "[parameters('functionAppName')]",
     "workspaceId": "[resourceId(parameters('workspaceResourceGroup'), 'Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]",
     "workspaceApiVersion": "[providers('microsoft.operationalinsights', 'workspaces').apiVersions[0]]",
@@ -824,8 +845,16 @@
       }
     },
     {
+      "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+      "apiVersion": "2019-06-01",
+      "name": "[concat(variables('functionStorageAccountName'), '/default/', variables('functionFileShareName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageAccountName'))]"
+      ]
+    },
+    {
       "type": "Microsoft.Web/serverfarms",
-      "apiVersion": "2018-11-01",
+      "apiVersion": "[variables('functionApiVersion')]",
       "name": "[variables('functionAppHostingPlanName')]",
       "location": "[parameters('location')]",
       "sku": {
@@ -851,8 +880,8 @@
       }
     },
     {
-      "apiVersion": "2018-11-01",
       "type": "Microsoft.Web/sites",
+      "apiVersion": "[variables('functionApiVersion')]",
       "name": "[parameters('functionAppName')]",
       "tags": {
         "iotHub": "[resourceId(parameters('iotHubResourceGroup'), 'Microsoft.Devices/IotHubs', parameters('iotHubName'))]",
@@ -888,6 +917,14 @@
             },
             {
               "name": "AzureWebJobsDashboard",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('functionStorageAccountName'), ';AccountKey=', listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageAccountName')), '2018-11-01').keys[0].value, ';')]"
+            },
+            {
+              "name": "WEBSITE_CONTENTSHARE",
+              "value": "[variables('functionFileShareName')]"
+            },
+            {
+              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
               "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('functionStorageAccountName'), ';AccountKey=', listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionStorageAccountName')), '2018-11-01').keys[0].value, ';')]"
             },
             {
@@ -952,7 +989,7 @@
             },
             {
               "name": "LogsEncoding",
-              "value": "none"
+              "value": "[parameters('logsEncoding')]"
             },
             {
               "name": "LogsMaxSizeMB",
@@ -985,6 +1022,10 @@
             {
               "name": "WorkspaceKey",
               "value": "[listKeys(variables('workspaceId'), variables('workspaceApiVersion')).primarySharedKey]"
+            },
+            {
+              "name": "HttpTriggerFunction",
+              "value": "[parameters('httpTriggerFunction')]"
             }
           ]
         }
@@ -1029,5 +1070,13 @@
       "type": "string",
       "value": "[if(parameters('createEventHubs'), reference(variables('eventHubsDeploymentName'), variables('linkedDeploymentApiVersion')).outputs.instanceSendKey.value, '')]"
     }
+    // "functionReference": {
+    //   "type": "object",
+    //   "value": "[reference(variables('functionAppResourceId'), variables('functionApiVersion'))]"
+    // },
+    // "functionKeys": {
+    //   "type": "object",
+    //   "value": "[listKeys(variables('functionAppResourceId'), variables('functionApiVersion'))]"
+    // }
   }
 }

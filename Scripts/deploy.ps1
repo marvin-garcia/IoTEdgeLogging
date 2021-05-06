@@ -31,6 +31,8 @@ function New-IoTEnvironment()
     $deployment_condition = "tags.logPullEnabled='true'"
     $function_app_name = "iotedgelogsapp-$($env_hash)"
     $logs_regex = "\b(WRN?|ERR?|CRIT?)\b"
+    $logs_encoding = "none"
+    $http_trigger_function = "InvokeUploadModuleLogs"
 
     Write-Host
     Write-Host "################################################"
@@ -486,7 +488,7 @@ function New-IoTEnvironment()
         if ($option -eq 1)
         {
             Write-Host
-            Write-Host -ForegroundColor Yellow "NOTE: Monitoring metrics will be sent directly from the edge to a log analytics workspace Log analytics workspace. Go to https://aka.ms/tbd-azuremon to find more details."
+            Write-Host -ForegroundColor Yellow "NOTE: Monitoring metrics will be sent directly from the edge to a log analytics workspace Log analytics workspace. Go to https://aka.ms/edgemon-docs to find more details."
 
             $monitoring_mode = "AzureMonitor"
             $event_hubs_namespace = ""
@@ -754,8 +756,10 @@ function New-IoTEnvironment()
         "eventHubsListenPolicyName" = @{ "value" = $event_hubs_listen_rule }
         "eventHubsSendPolicyName" = @{ "value" = $event_hubs_send_rule }
         "functionAppName" = @{ "value" = $function_app_name }
+        "httpTriggerFunction" = @{ "value" = $http_trigger_function }
         "logsRegex" = @{ "value" = $logs_regex }
         "logsSince" = @{ "value" = "15m" }
+        "logsEncoding" = @{ "value" = $logs_encoding }
         "branchName" = @{ "value" = $(git rev-parse --abbrev-ref HEAD) }
     }
     Set-Content -Path "$($root_path)/Templates/azuredeploy.parameters.json" -Value (ConvertTo-Json $platform_parameters -Depth 5)
@@ -773,6 +777,16 @@ function New-IoTEnvironment()
     {
         throw "Something went wrong with the resource group deployment. Ending script."        
     }
+    #endregion
+
+    #region update azure function host key app setting
+    $function_app_hostname = az functionapp show -g $resource_group -n $function_app_name --query defaultHostName -o tsv
+    $function_key = az functionapp keys list -g $resource_group -n $function_app_name --query 'functionKeys.default' -o tsv
+
+    az functionapp config appsettings set `
+        --name $function_app_name `
+        --resource-group $resource_group `
+        --settings "HostUrl=https://$($function_app_hostname)" "HostKey=$($function_key)"
     #endregion
 
     #region generate monitoring deployment manifest
@@ -800,7 +814,7 @@ function New-IoTEnvironment()
             -d "main-deployment" `
             --hub-name $iot_hub_name `
             --content "$($root_path)/EdgeSolution/deployment.manifest.json" `
-            --target-condition=$deployment_condition
+            --target-condition=$deployment_condition | Out-Null
 
         # Create monitoring deployment
         $deployment_name = "edge-monitoring"
@@ -814,7 +828,7 @@ function New-IoTEnvironment()
             --hub-name $iot_hub_name `
             --content $monitoring_manifest `
             --target-condition=$deployment_condition `
-            --priority $priority
+            --priority $priority | Out-Null
 
         # Create logging deployment
         $deployment_name = "sample-logging"
@@ -828,7 +842,7 @@ function New-IoTEnvironment()
             --hub-name $iot_hub_name `
             --content "$($root_path)/EdgeSolution/logging.deployment.json" `
             --target-condition=$deployment_condition `
-            --priority $priority
+            --priority $priority | Out-Null
     }
     #endregion
 
@@ -879,8 +893,19 @@ function New-IoTEnvironment()
         Write-Host -ForegroundColor Yellow $(Get-Content $monitoring_manifest) -Separator "`r`n"
 
         Write-Host
-        Write-Host -ForegroundColor Yellow "Go to https://aka.ms/azuremon for more details."
+        Write-Host -ForegroundColor Yellow "Go to https://aka.ms/edgemon-docs for more details."
     }
+    #endregion
+
+    #region make the first module logs upload request
+    Write-Host
+    Write-Host "Waiting for edge deployment to be applied"
+    Start-Sleep -Seconds 120
+
+    Write-Host
+    Write-Host "Invoking first module logs pull request"
+    $response = Invoke-WebRequest -Uri "https://$($function_app_hostname)/api/$($http_trigger_function)?code=$($function_key)"
+    $response | Out-String
     #endregion
 
     Write-Host
