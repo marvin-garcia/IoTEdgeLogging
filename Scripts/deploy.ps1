@@ -849,7 +849,7 @@ function New-IoTEnvironment()
     #region function app
     Write-Host
     Write-Host "Deploying code to Function App $function_app_name"
-    $az_func = az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src "$($root_path)/FunctionApp/FunctionApp/deploy.zip" | ConvertFrom-Json
+    az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src "$($root_path)/FunctionApp/FunctionApp/deploy.zip" | Out-Null
     #endregion
 
     #region notify of monitoring deployment steps
