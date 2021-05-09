@@ -26,21 +26,21 @@ Whenever there are an IoT edge devices involved, there will be software modules 
 
 ## Monitoring architecture reference
 
+If the monitoring option is enabled, the following components will be created in addition to the logging architecture:
+
+
+
 ![Monitoring architecture](docs/monitoring-architecture.png)
 
 
 
 ### High-level process flow:
 
-If the monitoring option is enabled, the following components will be created in addition to the logging architecture:
-
-
-
 1. The **Azure Monitor** module will be deployed to the edge devices to scrape metrics from the modules running at the edge in Prometheus format.
 2. The Azure Monitor module supports uploading metrics in two ways:
    - **HTTP Post to Azure Monitor** endpoint. This option requires outbound internet connectivity from the edge device(s).
    - To other IoT modules/Hub as **IoT messages**. This option is useful for local consumption.
-3. If the monitoring option is configured to upload metrics as IoT messages, an event hubs namespace and event hub instance will be required to route metric messages from IoT Hub to the Azure function **CollectMetrics**, that will then send them to Log Analytics.
+3. If the monitoring option is configured to upload metrics as IoT messages, an event hubs namespace and event hub instance will be used to route metric messages from IoT Hub to the Azure function **CollectMetrics**, that will then send them to Log Analytics.
 
 
 
