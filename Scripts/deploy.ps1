@@ -903,8 +903,22 @@ function New-IoTEnvironment()
 
     Write-Host
     Write-Host "Invoking first module logs pull request"
-    $response = Invoke-WebRequest -Uri "https://$($function_app_hostname)/api/$($http_trigger_function)?code=$($function_key)"
-    $response | Out-String
+    $attemps = 3
+    do
+    {
+        $response = Invoke-WebRequest -Uri "https://$($function_app_hostname)/api/$($http_trigger_function)?code=$($function_key)" -ErrorAction Ignore
+        $attemps--
+
+        if ($response.StatusCode -eq 200)
+        {
+            Write-Host
+            Write-Host "First function execution submitted successfully"
+        }
+        else
+        {
+            Start-Sleep -Seconds 10
+        }
+    } while ($response.StatusCode -ne 200 -and $attemps -gt 0)
     #endregion
 
     Write-Host
