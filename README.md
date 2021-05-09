@@ -32,7 +32,7 @@ Whenever there are an IoT edge devices involved, there will be software modules 
 
 ### High-level process flow:
 
-If the monitoring option is enabled in the solution, the following components will be included:
+If the monitoring option is enabled, the following components will be created in addition to the logging architecture:
 
 
 
