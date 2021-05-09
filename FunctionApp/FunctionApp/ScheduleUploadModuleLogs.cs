@@ -25,7 +25,7 @@ namespace FunctionApp
             {
                 log.LogInformation($"ScheduleUploadModuleLogs function executed at: {DateTime.Now}");
 
-                string url = $"https://{this._hostUrl}/api/{this._httpTriggerFunction}?code={this._hostKey}";
+                string url = $"{this._hostUrl}/api/{this._httpTriggerFunction}?code={this._hostKey}";
                 log.LogInformation($"Calling endpoint {url} to invoke module logs upload method");
                 var response = await this._httpClient.GetAsync(url);
 
