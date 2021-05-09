@@ -1,8 +1,8 @@
 name: Build and publish .NET Core Function App zip package
 on:
   push:
-    branches:
-    - master
+    # branches:
+    # - master
     paths:
     - 'FunctionApp/**'
     - '!FunctionApp/FunctionApp/deploy.zip'
@@ -51,8 +51,13 @@ jobs:
       run: mv ${{ env.TEMP_DIR }}/${{ env.EVENTHUBS_FUNCTION }} ${{ env.WORKING_DIRECTORY }}/
     - name: Writing SSH private key to local disk
       run: mkdir -p ~/.ssh && echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
+    - name: check current branch
+      run: echo "BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV && echo ${{ env.BRANCH }}
+      continue-on-error: true
     - name: Switching from HTTPS to SSH
       run: git remote set-url origin ${{ secrets.SSH }}
+    - name: check current branch
+      run: echo "BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV && echo ${{ env.BRANCH }}
     - name: Check for changes
       run: git status
     - name: Stage changed files
@@ -63,5 +68,5 @@ jobs:
       run: git config --global user.name ${{ env.FLOW_NAME }}
     - name: Commit changed files
       run: git commit -m "Adding Function App zip deploy package"
-    - name: Push code to master
+    - name: Push code
       run: git push

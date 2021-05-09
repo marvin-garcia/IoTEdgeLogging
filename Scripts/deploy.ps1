@@ -3,16 +3,7 @@ function New-IoTEnvironment()
     # Get environment hash for name uniqueness
     $env_hash = Get-EnvironmentHash
     
-    # verify deploy zip package is present in directory
-    # $current_path = Split-Path $PSScriptRoot -Parent
-    # $root_path = Split-Path $current_path -Parent
     $root_path = Split-Path $PSScriptRoot -Parent
-    write-host "parent" $root_path
-    if (!(Test-Path -Path "$($root_path)/FunctionApp/FunctionApp/deploy.zip"))
-    {
-        Write-Error "Unable to find Function app zip deploy file. Aborting."
-        return
-    }
     
     $create_iot_hub = $false
     $ask_for_location = $false
@@ -847,9 +838,17 @@ function New-IoTEnvironment()
     #endregion
 
     #region function app
+    if ($create_event_hubs)
+    {
+        $zip_package_name = "deploy.zip"
+    }
+    else {
+        $zip_package_name = "deploy_no_eh.zip"
+    }
+
     Write-Host
     Write-Host "Deploying code to Function App $function_app_name"
-    az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src "$($root_path)/FunctionApp/FunctionApp/deploy.zip" | Out-Null
+    az functionapp deployment source config-zip -g $resource_group -n $function_app_name --src "$($root_path)/FunctionApp/FunctionApp/$($zip_package_name)" | Out-Null
     #endregion
 
     #region notify of monitoring deployment steps
