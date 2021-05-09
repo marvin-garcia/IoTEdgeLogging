@@ -6,6 +6,7 @@ on:
     paths:
     - 'FunctionApp/**'
     - '!FunctionApp/FunctionApp/deploy.zip'
+    - '!FunctionApp/FunctionApp/deploy_no_eh.zip'
   workflow_dispatch:
     inputs:
       comment:
@@ -16,7 +17,7 @@ env:
   WORKING_DIRECTORY: FunctionApp/FunctionApp
   PUBLISH_DIRECTORY: FunctionApp/FunctionApp/bin/Publish
   EVENTHUBS_FUNCTION: CollectMetrics.cs
-  FLOW_EMAIL: marvin.garcia.b@gmail.com
+  FLOW_EMAIL: magar@microsoft.com
   FLOW_NAME: "github workflow"
 jobs:
   build-and-package:
@@ -51,9 +52,6 @@ jobs:
       run: mv ${{ env.TEMP_DIR }}/${{ env.EVENTHUBS_FUNCTION }} ${{ env.WORKING_DIRECTORY }}/
     - name: Writing SSH private key to local disk
       run: mkdir -p ~/.ssh && echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
-    - name: check current branch
-      run: echo "BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV && echo ${{ env.BRANCH }}
-      continue-on-error: true
     - name: Switching from HTTPS to SSH
       run: git remote set-url origin ${{ secrets.SSH }}
     - name: check current branch
