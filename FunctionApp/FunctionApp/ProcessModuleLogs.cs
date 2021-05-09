@@ -20,21 +20,20 @@ namespace FunctionApp
         private static string _containerName = Environment.GetEnvironmentVariable("ContainerName");
         private static string _workspaceId = Environment.GetEnvironmentVariable("WorkspaceId");
         private static string _workspaceKey = Environment.GetEnvironmentVariable("WorkspaceKey");
-        private static string _workspaceApiVersion = "2016-04-01";
+        private static string _workspaceApiVersion = Environment.GetEnvironmentVariable("WorkspaceApiVersion");
+        private static string _logsEncoding = Environment.GetEnvironmentVariable("LogsEncoding");
         private static string _logType = Environment.GetEnvironmentVariable("LogType");
-        private static int _logMaxSizeMB = 28;
-
+        private static int _logMaxSizeMB = Convert.ToInt32(Environment.GetEnvironmentVariable("LogsMaxSizeMB"));
+        private static bool _compressForUpload = Convert.ToBoolean(Environment.GetEnvironmentVariable("CompressForUpload"));
+        
         [FunctionName("ProcessModuleLogs")]
         public static async Task Run(
-            //[BlobTrigger("iotedgelogs/{name}", Connection = "StorageConnectionString")]Stream myBlob,
-            //string name,
             [QueueTrigger("%QueueName%", Connection = "StorageConnectionString")] string queueItem,
             ILogger log)
         {
             try
             {
-                log.LogInformation($"ProcessModuleLogs Received new queue item");
-
+                #region Queue trigger
                 JObject storageEvent = JsonConvert.DeserializeObject<JObject>(queueItem);
                 var match = Regex.Match(storageEvent["subject"].ToString(), "/blobServices/default/containers/(.*)/blobs/(.*)", RegexOptions.IgnoreCase);
                 if (!match.Success)
@@ -49,9 +48,11 @@ namespace FunctionApp
                     return;
                 }
 
-                log.LogInformation("ProcessModuleLogs function received a new queue message");
-                log.LogDebug($"Message content: {queueItem}");
+                string blobName = match.Groups[2].Value;
+                #endregion
 
+                log.LogInformation($"ProcessModuleLogs function received a new queue message from blob {blobName}");
+                
                 // Create a BlobServiceClient object which will be used to create a container client
                 BlobServiceClient blobServiceClient = new BlobServiceClient(_connectionString);
 
@@ -59,11 +60,17 @@ namespace FunctionApp
                 BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(_containerName);
 
                 // Get blob client object
-                string blobName = match.Groups[2].Value;
                 BlobClient blobClient = containerClient.GetBlobClient(blobName);
 
                 // Read the blob's contents
                 Stream blobStream = await blobClient.OpenReadAsync();
+                
+                // Decompress if encoding is gzip
+                if (string.Equals(_logsEncoding, "gzip", StringComparison.OrdinalIgnoreCase))
+                {
+                    // TODO: decompress logs
+                }
+
                 StreamReader reader = new StreamReader(blobStream);
                 IoTEdgeLog[] iotEdgeLogs = JsonConvert.DeserializeObject<IoTEdgeLog[]>(reader.ReadToEnd());
 
@@ -77,9 +84,8 @@ namespace FunctionApp
                 AzureLogAnalytics logAnalytics = new AzureLogAnalytics(
                     workspaceId: _workspaceId,
                     workspaceKey: _workspaceKey,
-                    logType: _logType,
-                    apiVersion: _workspaceApiVersion,
-                    resourceId: _hubResourceId);
+                    logger: log,
+                    apiVersion: _workspaceApiVersion);
 
                 // because log analytics supports messages up to 30MB,
                 // we have to break logs in chunks to fit in on each request
@@ -99,21 +105,28 @@ namespace FunctionApp
                     LogAnalyticsLog[] logsChunk = logAnalyticsLogs.Skip(count).Take(limit).ToArray();
                     try
                     {
-                        logAnalytics.Post(JsonConvert.SerializeObject(logsChunk));
-                        log.LogInformation("Request successful");
+                        //logAnalytics.Post(JsonConvert.SerializeObject(logsChunk), _logType, _hubResourceId);
+                        bool success = logAnalytics.PostToCustomTable(JsonConvert.SerializeObject(logsChunk), _logType, _hubResourceId);
+                        if (success)
+                            log.LogInformation("ProcessModuleLogs request to log analytics completed successfully");
+                        else
+                            log.LogError("ProcessModuleLogs request to log analytics failed");
                     }
                     catch (Exception e)
                     {
-                        log.LogError($"Request failed with exception {e}");
+                        log.LogError($"ProcessModuleLogs failed with exception {e}");
                     }
 
                     count += steps;
                 }
                 while (count < iotEdgeLogs.Length);
+
+                // Delete blob after being processed
+                await blobClient.DeleteIfExistsAsync(Azure.Storage.Blobs.Models.DeleteSnapshotsOption.IncludeSnapshots);
             }
             catch (Exception e)
             {
-                log.LogError($"GetModuleLogs failed with the following exception: {e}");
+                log.LogError($"ProcessModuleLogs failed with the following exception: {e}");
             }
         }
     }

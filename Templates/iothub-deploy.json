@@ -370,19 +370,19 @@
     }
   ],
   "outputs": {
-    "iotHubHostname": {
+    "hostname": {
       "type": "string",
       "value": "[reference(variables('iotHubId'), variables('iotHubApiVersion')).hostName]"
     },
-    "iotHubResourceId": {
+    "resourceId": {
       "type": "string",
       "value": "[variables('iotHubId')]"
     },
-    "iotHubOwnerKey": {
+    "ownerKey": {
       "type": "string",
       "value": "[listKeys(variables('iotHubOwnerKeysId'), variables('iotHubApiVersion')).primaryKey]"
     },
-    "iotHubServiceKey": {
+    "serviceKey": {
       "type": "string",
       "value": "[listKeys(variables('iotHubServiceKeysId'), variables('iotHubApiVersion')).primaryKey]"
     }

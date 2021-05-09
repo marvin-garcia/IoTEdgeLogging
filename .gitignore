@@ -268,3 +268,6 @@ __pycache__/
 docs/Presentation.pptx
 Templates/azuredeploy.parameters.json
 EdgeSolution/monitoring.deployment.json
+Scripts/az-iot-edge-deployment-create.ps1
+.gitignore
+deployment.json

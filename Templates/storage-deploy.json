@@ -42,7 +42,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2019-10-01",
-            "name": "dummyTemplate",
+            "name": "saDummyTemplate",
             "dependsOn": [],
             "properties": {
                 "mode": "Incremental",
@@ -97,7 +97,7 @@
             "name": "[concat(parameters('storageAccountName'), '/default/', parameters('storageContainerName'))]",
             "apiVersion": "2019-06-01",
             "dependsOn": [
-                "[if(parameters('createStorageAccount'), variables('storageAccountId'), 'dummyTemplate')]"
+                "[if(parameters('createStorageAccount'), variables('storageAccountId'), 'saDummyTemplate')]"
             ]
         },
         {
@@ -106,7 +106,7 @@
             "name": "[concat(parameters('storageAccountName'), '/default/', parameters('storageQueueName'))]",
             "apiVersion": "2021-01-01",
             "dependsOn": [
-                "[if(parameters('createStorageAccount'), variables('storageAccountId'), 'dummyTemplate')]"
+                "[if(parameters('createStorageAccount'), variables('storageAccountId'), 'saDummyTemplate')]"
             ]
         },
         {
@@ -117,7 +117,7 @@
             "name": "[parameters('eventGridSystemTopicName')]",
             "location": "[parameters('storageAccountLocation')]",
             "dependsOn": [
-                "[if(parameters('createStorageAccount'), variables('storageAccountId'), 'dummyTemplate')]"
+                "[if(parameters('createStorageAccount'), variables('storageAccountId'), 'saDummyTemplate')]"
             ],
             "properties": {
                 "topicType": "microsoft.storage.storageaccounts",
@@ -130,7 +130,7 @@
             "apiVersion": "2020-10-15-preview",
             "name": "[concat(parameters('eventGridSystemTopicName'), '/', parameters('eventGridSubscriptionName'))]",
             "dependsOn": [
-                "[if(parameters('createEventGridSystemTopic'), variables('systemTopicId'), 'dummyTemplate')]"
+                "[if(parameters('createEventGridSystemTopic'), variables('systemTopicId'), 'saDummyTemplate')]"
             ],
             "properties": {
                 "destination": {
