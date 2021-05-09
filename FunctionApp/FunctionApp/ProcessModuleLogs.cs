@@ -122,7 +122,7 @@ namespace FunctionApp
                 while (count < iotEdgeLogs.Length);
 
                 // Delete blob after being processed
-                await containerClient.DeleteBlobAsync(blobName);
+                await blobClient.DeleteIfExistsAsync(Azure.Storage.Blobs.Models.DeleteSnapshotsOption.IncludeSnapshots);
             }
             catch (Exception e)
             {
